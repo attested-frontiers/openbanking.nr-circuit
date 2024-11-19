@@ -9,16 +9,35 @@ use base64::BASE64_URL_DECODER;
 pub global MAX_JWT_SIZE: u32 = 1536;
 pub global KEY_LIMB_SIZE: u32 = 18;
 pub global PAYLOAD_RANGE: u32 = 1328;
+pub global AMOUNT_KEY_LENGTH = 6;
+pub global AMOUNT_KEY: [u8; AMOUNT_KEY_LENGTH] = comptime { "Amount".as_bytes() };
+pub global MAX_AMOUNT_VALUE_LENGTH = 10;
 pub global SORT_CODE_VALUE_LENGTH: u32 = 14;
 pub global SORT_CODE_KEY_LENGTH: u32 = 14;
 pub global SORT_CODE_KEY: [u8; SORT_CODE_KEY_LENGTH] = comptime { "Identification".as_bytes() };
+
+fn bytes_to_num(amount_value: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH>) -> Field {
+    // convert amount from bytes to field and add 6 decimals
+    let mut converted: Field = 0;
+    let mut pow: Field = 10.pow_32(amount_value.len as Field - 2);
+    for i in 0..MAX_AMOUNT_VALUE_LENGTH {
+        let byte = amount_value.storage[i];
+        if (i < amount_value.len) & (byte != 0x2E) {
+            let val = (byte - 0x30) as Field;
+            converted = converted + val * pow;
+            pow = pow / 10;
+        }
+    }
+    converted * 10.pow_32(6)
+}
 
 fn main(
     data: BoundedVec<u8, MAX_JWT_SIZE>,
     pubkey_modulus_limbs: [Field; KEY_LIMB_SIZE],
     redc_params_limbs: [Field; KEY_LIMB_SIZE],
     signature_limbs: [Field; KEY_LIMB_SIZE],
-    sort_code_value: [u8; SORT_CODE_VALUE_LENGTH]
+    sort_code_value: [u8; SORT_CODE_VALUE_LENGTH],
+    amount_value: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH>,
 ) {
     // instantiate jwt
     let jwt: JWT<MAX_JWT_SIZE> = JWT::init(data, 0, pubkey_modulus_limbs, redc_params_limbs, signature_limbs);
@@ -41,6 +60,17 @@ fn main(
         SORT_CODE_KEY,
         sort_code_vec
     );
+
+    // verify existence of sort code in JWT
+    jwt.validate_key_value::<PAYLOAD_RANGE, AMOUNT_KEY_LENGTH, MAX_AMOUNT_VALUE_LENGTH>(
+       AMOUNT_KEY,
+       amount_value
+    );
+
+    // convert amount to u32
+    let amount_num = bytes_to_num(amount_value);
+    println("Amount");
+    println(amount_num);
 }
 
 // /**
@@ -110,13 +140,19 @@ fn should_pass() {
     let signature = [0x44e58c2053b73b525ed6fb6e892511, 0x3b47fb49cc11213e2fd99d2179e383, 0xc1e0997bb4845f0a4f033d3cbbff98, 0x310c7a4b9bad9f0a8613e1c0f3dd4a, 0x2f14d9c6a83bf96deed497e0d36aa5, 0x48aed834df0bba4c6c928db25e7ce3, 0xf5e2efda6da620bf0bbe50a088614b, 0xa40c3fe2d965310c8eac442ec491, 0x67edfd09a7e2d8e9d2d73ce919f091, 0x3ebf79487d76de48d979ccad567a0a, 0x0e80e46d5f1cdf8ede3bb167d74356, 0x9e2b090970e2ec3f44fcf708c96652, 0x218fea67626fdac226f569ff106cc2, 0x7a9630e9f76c744b48d9915de51e5e, 0x0dc3546e82fcd9803a1df2db6baccc, 0xeda26cf4b08f0847f3e9550a0ae115, 0xea7fc867626fb31fbd5d0134dfe437, 0xac];
     
     let sort_code_value: [u8; SORT_CODE_VALUE_LENGTH] = comptime { "08080021325698".as_bytes() };
+    let amount_bytes: [u8; 6] = comptime { "165.88".as_bytes() };
+    let amount: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH> = BoundedVec {
+        storage: [amount_bytes[0], amount_bytes[1], amount_bytes[2], amount_bytes[3], amount_bytes[4], amount_bytes[5], 0, 0, 0, 0],
+        len: amount_bytes.len()
+    };
     // logic
     main(
         data,
         modulus_limbs,
         redc_params_limbs,
         signature,
-        sort_code_value
+        sort_code_value,
+        amount
     );
 }
 
@@ -131,12 +167,18 @@ fn should_fail() {
     let signature = [0x44e58c2053b73b525ed6fb6e892511, 0x3b47fb49cc11213e2fd99d2179e383, 0xc1e0997bb4845f0a4f033d3cbbff98, 0x310c7a4b9bad9f0a8613e1c0f3dd4a, 0x2f14d9c6a83bf96deed497e0d36aa5, 0x48aed834df0bba4c6c928db25e7ce3, 0xf5e2efda6da620bf0bbe50a088614b, 0xa40c3fe2d965310c8eac442ec491, 0x67edfd09a7e2d8e9d2d73ce919f091, 0x3ebf79487d76de48d979ccad567a0a, 0x0e80e46d5f1cdf8ede3bb167d74356, 0x9e2b090970e2ec3f44fcf708c96652, 0x218fea67626fdac226f569ff106cc2, 0x7a9630e9f76c744b48d9915de51e5e, 0x0dc3546e82fcd9803a1df2db6baccc, 0xeda26cf4b08f0847f3e9550a0ae115, 0xea7fc867626fb31fbd5d0134dfe437, 0xac];
     
     let sort_code_value: [u8; SORT_CODE_VALUE_LENGTH] = comptime { "08080011325698".as_bytes() };
+    let amount_bytes: [u8; 6] = comptime { "165.88".as_bytes() };
+    let amount: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH> = BoundedVec {
+        storage: [amount_bytes[0], amount_bytes[1], amount_bytes[2], amount_bytes[3], amount_bytes[4], amount_bytes[5], 0, 0, 0, 0],
+        len: amount_bytes.len()
+    };
     // logic
     main(
         data,
         modulus_limbs,
         redc_params_limbs,
         signature,
-        sort_code_value
+        sort_code_value,
+        amount
     );
 }

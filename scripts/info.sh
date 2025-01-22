@@ -1,5 +1,5 @@
 #!/bin/bash
 
-cd ../target
+cd ../jwt-rsa-pss-example/target
 
-bb gates -b jwt_test.json | grep "circuit"
+bb gates -b jwt_rsa_pss_example.json | grep "circuit"

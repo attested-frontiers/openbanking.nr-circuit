@@ -39,6 +39,7 @@ fn main(
     // verify signature over payload
     assert(verify_sha256_pss(hash, signature, 2048));
 
+    // TODO: First attempt at extracting payload away from header. Needs a refactor
     let mut json_payload_bytes: [u8; MAX_PAYLOAD_LENGTH] = [32; MAX_PAYLOAD_LENGTH];
     let mut header_delimiter_found = false;
     let mut index = 0;

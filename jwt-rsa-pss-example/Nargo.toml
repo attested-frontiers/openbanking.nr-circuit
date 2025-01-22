@@ -6,4 +6,4 @@ compiler_version = ">=1.0.0"
 [dependencies]
 bignum = {tag = "v0.5.0", git = "https://github.com/noir-lang/noir-bignum"}
 json_parser = { tag = "v0.3.0", git = "https://github.com/noir-lang/noir_json_parser"}
-rsa_pss = { path = "../../noir_rsa_pss/lib" } 
+rsa_pss = { git = "https://github.com/jp4g/noir_rsa_pss", branch = "feat/nargo-1.0.0", path = "/lib" } 

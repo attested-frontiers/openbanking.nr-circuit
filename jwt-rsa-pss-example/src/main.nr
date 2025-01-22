@@ -1,6 +1,10 @@
+mod utils;
+
 use bignum::{params::BigNumParams, RuntimeBigNum};
 use json_parser::JSON;
 use rsa_pss::rsa::verify_sha256_pss;
+
+use utils::{check_delimiter_index, compare_payload, get_delimiter_index, get_payload};
 
 pub global MAX_JWT_SIZE: u32 = 1536;
 pub global MAX_PAYLOAD_LENGTH: u32 = 1024;
@@ -18,6 +22,7 @@ pub global MAX_UNSTRUCTURED_LENGTH: u32 = 12;
 pub global PAYLOAD_DATA_KEY: [u8; 4] = comptime { "Data".as_bytes() };
 pub global REMITTANCE_KEY: [u8; 21] = comptime { "RemittanceInformation".as_bytes() };
 pub global UNSTRUCTURED_KEY: [u8; 12] = comptime { "Unstructured".as_bytes() };
+
 
 fn main(
     signature_limbs: [Field; 18],
@@ -40,67 +45,31 @@ fn main(
     // verify signature over payload
     assert(verify_sha256_pss(hash, signature, 2048));
 
-    let mut json_payload_bytes: [u8; MAX_PAYLOAD_LENGTH] = [32; MAX_PAYLOAD_LENGTH];
-
-    // let mut header_delimiter_index = 0;
-    // for i in 0..MAX_HEADER_LENGTH {
-    //     let value = data.get(i);
-    //     if (header_delimiter_index == 0) & (value == 0x2E) {
-    //         header_delimiter_index = i;
-    //     }
-    // }
-
-    // for i in 0..MAX_JWT_SIZE {
-    //     let index = header_delimiter_index - i - 1;
-    //     let value = data.get(i);
-    //     if(i > header_delimiter_index) & (i < data.len) {
-    //         json_payload_bytes[index] = value;
-    //     }
-    // }
-
-    let mut header_delimiter_index = 0;
-    for i in 0..MAX_HEADER_LENGTH {
-        let value = data.get(i);
-        if (header_delimiter_index == 0) & (value == 0x2E) {
-            header_delimiter_index = i;
-        }
-    }
-
-    for i in 1..MAX_JWT_SIZE {
-        let mut index = 0;
-        let value = data.get_unchecked(i);
-        if(i > header_delimiter_index) & (i < data.len) {
-            index = header_delimiter_index - i - 1;
-        }
-        json_payload_bytes[index] = value;
-    }
-    json_payload_bytes[header_delimiter_index - 1] = data.get(0);
-
-    // assign first index of json payload bytes to "{" as it is skipped in loop
-    // json_payload_bytes[0] = 123;
-    // maxmimum payload length isn't reached assign to 32 (whitespace) to end of array to make JSON parse happy
-    // if (json_payload_bytes[MAX_PAYLOAD_LENGTH - 2] == 32) & (json_payload_bytes[MAX_PAYLOAD_LENGTH - 1] != 32) {
-    //     json_payload_bytes[MAX_PAYLOAD_LENGTH - 1] = 32;
-    // }
-
-    // dep::std::print(json_payload_bytes);
+    let payload: BoundedVec<u8, MAX_PAYLOAD_LENGTH> = unsafe { 
+        let delimiter_index = get_delimiter_index::<MAX_HEADER_LENGTH, MAX_JWT_SIZE>(data);
+        check_delimiter_index::<MAX_HEADER_LENGTH, MAX_JWT_SIZE>(data, delimiter_index);
+        let payload = get_payload::<MAX_JWT_SIZE, MAX_PAYLOAD_LENGTH>(data, delimiter_index);
+        compare_payload::<MAX_JWT_SIZE, MAX_PAYLOAD_LENGTH>(data, payload, delimiter_index);
+        dep::std::println(payload);
+        payload
+    };
 
     // init JSON
-    // let json: JSON<1024, 37, 128, 65, 2> = JSON::parse_json(json_payload_bytes);
+    let json: JSON<1024, 37, 128, 65, 2> = JSON::parse_json(payload.storage);
 
-    // let mut nested_json = json.get_object(PAYLOAD_DATA_KEY).unwrap();
-    // // extract consent id;
-    // let consent_id_result = nested_json.get_string_unchecked(CONSENT_ID_KEY);
-    // assert(consent_id_result.storage == consent_id_value);
-    // // extract amount
-    // let mut nested_json2 = nested_json.get_object(INITIATION_KEY).unwrap();
-    // let mut nested_json_3 = nested_json2.get_object(INSTRUCTED_AMOUNT_KEY).unwrap();
-    // let amount_result = nested_json_3.get_string_unchecked(AMOUNT_KEY);
-    // assert(amount_result.storage == amount_value.storage);
+    let mut nested_json = json.get_object(PAYLOAD_DATA_KEY).unwrap();
+    // extract consent id;
+    let consent_id_result = nested_json.get_string_unchecked(CONSENT_ID_KEY);
+    assert(consent_id_result.storage == consent_id_value);
+    // extract amount
+    let mut nested_json2 = nested_json.get_object(INITIATION_KEY).unwrap();
+    let mut nested_json_3 = nested_json2.get_object(INSTRUCTED_AMOUNT_KEY).unwrap();
+    let amount_result = nested_json_3.get_string_unchecked(AMOUNT_KEY);
+    assert(amount_result.storage == amount_value.storage);
 
-    // let mut nested_json_4 = nested_json2.get_object(REMITTANCE_KEY).unwrap();
-    // let unstructured_result = nested_json_4.get_string_unchecked(UNSTRUCTURED_KEY);
-    // assert(unstructured_result.storage == unstructured_value.storage);
+    let mut nested_json_4 = nested_json2.get_object(REMITTANCE_KEY).unwrap();
+    let unstructured_result = nested_json_4.get_string_unchecked(UNSTRUCTURED_KEY);
+    assert(unstructured_result.storage == unstructured_value.storage);
 }
 
 #[test]

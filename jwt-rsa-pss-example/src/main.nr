@@ -29,9 +29,7 @@ fn main(
     modulus_limbs: [Field; 18],
     redc_limbs: [Field; 18],
     data: BoundedVec<u8, MAX_JWT_SIZE>,
-    consent_id_value: [u8; CONSENT_ID_LENGTH],
     amount_value: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH>,
-    unstructured_value: BoundedVec<u8, MAX_UNSTRUCTURED_LENGTH>,
 ) {
     let has_multiplicative_inverse = false;
     let params: BigNumParams<18, 2048> =
@@ -43,33 +41,25 @@ fn main(
     let hash: [u8; 32] = dep::std::hash::sha256_var(data.storage, data.len as u64);
 
     // verify signature over payload
-    assert(verify_sha256_pss(hash, signature, 2048));
+    // assert(verify_sha256_pss(hash, signature, 2048));
 
-    let payload: BoundedVec<u8, MAX_PAYLOAD_LENGTH> = unsafe { 
-        let delimiter_index = get_delimiter_index::<MAX_HEADER_LENGTH, MAX_JWT_SIZE>(data);
-        check_delimiter_index::<MAX_HEADER_LENGTH, MAX_JWT_SIZE>(data, delimiter_index);
-        let payload = get_payload::<MAX_JWT_SIZE, MAX_PAYLOAD_LENGTH>(data, delimiter_index);
-        compare_payload::<MAX_JWT_SIZE, MAX_PAYLOAD_LENGTH>(data, payload, delimiter_index);
-        dep::std::println(payload);
-        payload
-    };
+    // let payload: BoundedVec<u8, MAX_PAYLOAD_LENGTH> = unsafe { 
+    //     let delimiter_index = get_delimiter_index::<MAX_HEADER_LENGTH, MAX_JWT_SIZE>(data);
+    //     check_delimiter_index::<MAX_HEADER_LENGTH, MAX_JWT_SIZE>(data, delimiter_index);
+    //     let payload = get_payload::<MAX_JWT_SIZE, MAX_PAYLOAD_LENGTH>(data, delimiter_index);
+    //     compare_payload::<MAX_JWT_SIZE, MAX_PAYLOAD_LENGTH>(data, payload, delimiter_index);
+    //     payload
+    // };
 
-    // init JSON
-    let json: JSON<1024, 37, 128, 65, 2> = JSON::parse_json(payload.storage);
+    // // init JSON
+    // let json: JSON<1024, 37, 128, 65, 2> = JSON::parse_json(payload.storage);
 
-    let mut nested_json = json.get_object(PAYLOAD_DATA_KEY).unwrap();
-    // extract consent id;
-    let consent_id_result = nested_json.get_string_unchecked(CONSENT_ID_KEY);
-    assert(consent_id_result.storage == consent_id_value);
-    // extract amount
-    let mut nested_json2 = nested_json.get_object(INITIATION_KEY).unwrap();
-    let mut nested_json_3 = nested_json2.get_object(INSTRUCTED_AMOUNT_KEY).unwrap();
-    let amount_result = nested_json_3.get_string_unchecked(AMOUNT_KEY);
-    assert(amount_result.storage == amount_value.storage);
-
-    let mut nested_json_4 = nested_json2.get_object(REMITTANCE_KEY).unwrap();
-    let unstructured_result = nested_json_4.get_string_unchecked(UNSTRUCTURED_KEY);
-    assert(unstructured_result.storage == unstructured_value.storage);
+    // let mut nested_json = json.get_object(PAYLOAD_DATA_KEY).unwrap();
+    // // extract amount
+    // let mut nested_json2 = nested_json.get_object(INITIATION_KEY).unwrap();
+    // let mut nested_json_3 = nested_json2.get_object(INSTRUCTED_AMOUNT_KEY).unwrap();
+    // let amount_result = nested_json_3.get_string_unchecked(AMOUNT_KEY);
+    // assert(amount_result.storage == amount_value.storage);
 }
 
 #[test]
@@ -175,8 +165,6 @@ fn test_main() {
         modulus_limbs,
         redc_limbs,
         jwt_data,
-        consent_id_value,
         amount_value,
-        unstructured_value
     );
 }

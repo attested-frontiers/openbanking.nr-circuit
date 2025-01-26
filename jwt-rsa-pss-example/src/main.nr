@@ -10,18 +10,20 @@ pub global MAX_JWT_SIZE: u32 = 1536;
 pub global MAX_PAYLOAD_LENGTH: u32 = 1024;
 pub global MAX_HEADER_LENGTH: u32 = MAX_JWT_SIZE - MAX_PAYLOAD_LENGTH;
 
-pub global JSON_PAYLOAD_LENGTH: u32 = 810;
+pub global CURRENCY_CODE_VALUE_LENGTH: u32 = 3;
+pub global CURRENCY_CODE_KEY_LENGTH: u32 = 8;
+pub global SORT_CODE_KEY_LENGTH: u32 = 14;
+pub global SORT_CODE_VALUE_LENGTH: u32 = 14;
+pub global AMOUNT_KEY_LENGTH: u32 = 6;
+pub global MAX_AMOUNT_VALUE_LENGTH: u32 = 10;
 
-pub global AMOUNT_KEY: [u8; 6] = comptime { "Amount".as_bytes() };
-pub global CONSENT_ID_LENGTH: u32 = 36;
-pub global CONSENT_ID_KEY: [u8; 9] = comptime { "ConsentId".as_bytes() };
+pub global AMOUNT_KEY: [u8; AMOUNT_KEY_LENGTH] = comptime { "Amount".as_bytes() };
+pub global CURRENCY_CODE_KEY: [u8; CURRENCY_CODE_KEY_LENGTH] = comptime { "Currency".as_bytes() };
+pub global DEBTOR_ACCOUNT_KEY: [u8; 13] = comptime { "DebtorAccount".as_bytes() };
 pub global INITIATION_KEY: [u8; 10] = comptime { "Initiation".as_bytes() };
 pub global INSTRUCTED_AMOUNT_KEY: [u8; 16] = comptime { "InstructedAmount".as_bytes() };
-pub global MAX_AMOUNT_VALUE_LENGTH: u32 = 10;
-pub global MAX_UNSTRUCTURED_LENGTH: u32 = 12;
 pub global PAYLOAD_DATA_KEY: [u8; 4] = comptime { "Data".as_bytes() };
-pub global REMITTANCE_KEY: [u8; 21] = comptime { "RemittanceInformation".as_bytes() };
-pub global UNSTRUCTURED_KEY: [u8; 12] = comptime { "Unstructured".as_bytes() };
+pub global SORT_CODE_KEY: [u8; SORT_CODE_KEY_LENGTH] = comptime { "Identification".as_bytes() };
 
 
 fn main(
@@ -29,7 +31,9 @@ fn main(
     modulus_limbs: [Field; 18],
     redc_limbs: [Field; 18],
     data: BoundedVec<u8, MAX_JWT_SIZE>,
-    amount_value: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH>,
+    amount: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH>,
+    currency_code: [u8; CURRENCY_CODE_VALUE_LENGTH],
+    sort_code: [u8; SORT_CODE_VALUE_LENGTH]
 ) {
     let has_multiplicative_inverse = false;
     let params: BigNumParams<18, 2048> =
@@ -41,25 +45,37 @@ fn main(
     let hash: [u8; 32] = dep::std::hash::sha256_var(data.storage, data.len as u64);
 
     // verify signature over payload
-    // assert(verify_sha256_pss(hash, signature, 2048));
+    assert(verify_sha256_pss(hash, signature, 2048));
 
-    // let payload: BoundedVec<u8, MAX_PAYLOAD_LENGTH> = unsafe { 
-    //     let delimiter_index = get_delimiter_index::<MAX_HEADER_LENGTH, MAX_JWT_SIZE>(data);
-    //     check_delimiter_index::<MAX_HEADER_LENGTH, MAX_JWT_SIZE>(data, delimiter_index);
-    //     let payload = get_payload::<MAX_JWT_SIZE, MAX_PAYLOAD_LENGTH>(data, delimiter_index);
-    //     compare_payload::<MAX_JWT_SIZE, MAX_PAYLOAD_LENGTH>(data, payload, delimiter_index);
-    //     payload
-    // };
+    let payload: BoundedVec<u8, MAX_PAYLOAD_LENGTH> = unsafe { 
+        let delimiter_index = get_delimiter_index::<MAX_HEADER_LENGTH, MAX_JWT_SIZE>(data);
+        check_delimiter_index::<MAX_HEADER_LENGTH, MAX_JWT_SIZE>(data, delimiter_index);
+        let payload = get_payload::<MAX_JWT_SIZE, MAX_PAYLOAD_LENGTH>(data, delimiter_index);
+        compare_payload::<MAX_JWT_SIZE, MAX_PAYLOAD_LENGTH>(data, payload, delimiter_index);
+        payload
+    };
 
-    // // init JSON
-    // let json: JSON<1024, 37, 128, 65, 2> = JSON::parse_json(payload.storage);
+    // init JSON
+    let json: JSON<1024, 37, 128, 65, 2> = JSON::parse_json(payload.storage);
 
-    // let mut nested_json = json.get_object(PAYLOAD_DATA_KEY).unwrap();
-    // // extract amount
-    // let mut nested_json2 = nested_json.get_object(INITIATION_KEY).unwrap();
-    // let mut nested_json_3 = nested_json2.get_object(INSTRUCTED_AMOUNT_KEY).unwrap();
-    // let amount_result = nested_json_3.get_string_unchecked(AMOUNT_KEY);
-    // assert(amount_result.storage == amount_value.storage);
+    let data_obj = json.get_object(PAYLOAD_DATA_KEY).unwrap();
+    let initiation_obj =  data_obj.get_object(INITIATION_KEY).unwrap();
+
+    // access nest json to retrieve sort code
+    let debtor_acc_obj = initiation_obj.get_object(DEBTOR_ACCOUNT_KEY).unwrap();
+    let sort_code_result = debtor_acc_obj.get_string_unchecked::<SORT_CODE_KEY_LENGTH, SORT_CODE_VALUE_LENGTH>(SORT_CODE_KEY);
+    assert(sort_code_result.storage == sort_code);
+
+    // access nested json to retrieve amount and currency code
+    let instructed_amt_obj = initiation_obj.get_object(INSTRUCTED_AMOUNT_KEY).unwrap();
+    
+    // extract amount
+    let amount_result = instructed_amt_obj.get_string_unchecked::<AMOUNT_KEY_LENGTH, MAX_AMOUNT_VALUE_LENGTH>(AMOUNT_KEY);
+    assert(amount_result.storage == amount.storage);
+
+    // extract currency code
+    let currency_result = instructed_amt_obj.get_string_unchecked::<CURRENCY_CODE_KEY_LENGTH, CURRENCY_CODE_VALUE_LENGTH>(CURRENCY_CODE_KEY);
+    assert(currency_result.storage == currency_code);
 }
 
 #[test]
@@ -143,9 +159,9 @@ fn test_main() {
         len: jwt_size
     };
 
-    let consent_id_value = comptime { "6d2e1641-e486-4a3a-936b-065628f2a926".as_bytes() };
     let amount = comptime { "1.00".as_bytes() };
-    let unstructured = comptime { "Shipment fee".as_bytes() };
+    let currency_code = comptime { "GBP".as_bytes() };
+    let sort_code = comptime { "04290953215338".as_bytes() };
 
     let mut amount_padded: [u8; MAX_AMOUNT_VALUE_LENGTH] = [0; MAX_AMOUNT_VALUE_LENGTH];
     for i in 0..amount.len() {
@@ -153,12 +169,6 @@ fn test_main() {
     }
     let amount_value: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH> = BoundedVec { storage: amount_padded, len: amount.len() };
 
-    let mut unstructured_padded: [u8; MAX_UNSTRUCTURED_LENGTH] = [0; MAX_UNSTRUCTURED_LENGTH];
-    for i in 0..unstructured.len() {
-        unstructured_padded[i] = unstructured[i];
-    }
-
-    let unstructured_value: BoundedVec<u8, MAX_UNSTRUCTURED_LENGTH> = BoundedVec { storage: unstructured_padded, len: unstructured.len() };
 
     main(
         signature_limbs,
@@ -166,5 +176,7 @@ fn test_main() {
         redc_limbs,
         jwt_data,
         amount_value,
+        currency_code,
+        sort_code
     );
 }

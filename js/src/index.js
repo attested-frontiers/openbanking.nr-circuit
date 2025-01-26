@@ -1,7 +1,8 @@
 const circuit = require('../../jwt-rsa-pss-example/target/jwt_rsa_pss_example.json');
-const paymentPayload = require('./data2.json');
+const fs = require('fs');
 const NoirBignum = require('@mach-34/noir-bignum-paramgen');
 const { Noir } = require('@noir-lang/noir_js');
+const { X509Certificate, createPublicKey } = require('crypto');
 
 // constants
 const MAX_AMOUNT_LENGTH = 10;
@@ -21,87 +22,45 @@ function bytesToBigInt(bytes) {
   return BigInt('0x' + hex);
 }
 
-/**
- * Given a claim (?) from a JWT, generate a JWS signature over the claim
- * @param {*} payload
- * @returns
- */
-const generateJWSSignature = async (privateKey) => {
-  try {
-    // convert header and payload to buffer
-    const encoder = new TextEncoder();
-    const dataBuffer = encoder.encode(
-      `${paymentPayload.Header}.${JSON.stringify(paymentPayload.Payload)}`
-    );
-
-    const hash = await crypto.subtle.digest('SHA-256', dataBuffer);
-
-    // Sign the data
-    const signature = await crypto.subtle.sign(
-      {
-        name: 'RSA-PSS',
-        saltLength: 0,
-      },
-      privateKey,
-      hash
-    );
-
-    // Return complete JWS
-    let sig = BigInt(`0x${Buffer.from(signature).toString('hex')}`);
-    return {
-      data: toBoundedVec(Buffer.from(dataBuffer)),
-      signature: NoirBignum.bnToLimbStrArray(sig),
-    };
-  } catch (error) {
-    console.error('Error generating JWS signature:', error);
-    throw error;
-  }
-};
-
-async function pubkeyFromKeypair(publicKey) {
-  const pubkey = await crypto.subtle.exportKey('jwk', publicKey);
+async function generatePubkeyParams(pubkey) {
   const modulus = bytesToBigInt(base64UrlToBytes(pubkey.n));
   return {
-    modulus: NoirBignum.bnToLimbStrArray(modulus),
-    redc: NoirBignum.bnToRedcLimbStrArray(modulus),
+    modulus_limbs: NoirBignum.bnToLimbStrArray(modulus),
+    redc_limbs: NoirBignum.bnToRedcLimbStrArray(modulus),
   };
 }
 
-async function generateNoirInputs(payload, keypair) {
-  const { data, signature } = await generateJWSSignature(keypair.privateKey);
-
-  const pubkey = await pubkeyFromKeypair(keypair.publicKey);
-  const amount = paymentPayload.Payload.Data.Initiation.InstructedAmount.Amount;
-  const amount_value = toBoundedVec(
-    new Uint8Array(Buffer.from(amount)),
-    MAX_AMOUNT_LENGTH
+async function generateNoirInputs(payload, signature, publicKey) {
+  const { modulus_limbs, redc_limbs } = await generatePubkeyParams(
+    publicKey.export({ format: 'jwk' })
   );
+  const signature_limbs = NoirBignum.bnToLimbStrArray(signature);
+
+  // extract payload data
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(payload);
+  const data = toBoundedVec(Buffer.from(dataBuffer));
+
+  const headerDelimiter = payload.indexOf('.');
+  const payloadParsed = JSON.parse(payload.slice(headerDelimiter + 1));
+  const amount = payloadParsed.Data.Initiation.InstructedAmount.Amount;
+  const amount_value = toBoundedVec(encoder.encode(amount), MAX_AMOUNT_LENGTH);
+  const currency_code = Array.from(
+    encoder.encode(payloadParsed.Data.Initiation.InstructedAmount.Currency)
+  );
+  const sort_code = Array.from(
+    encoder.encode(payloadParsed.Data.Initiation.DebtorAccount.Identification)
+  );
+
   return {
-    signature_limbs: signature,
-    modulus_limbs: pubkey.modulus,
-    redc_limbs: pubkey.redc,
-    data: {
-      storage: data.storage.map((val) => Number(val)),
-      len: Number(data.len),
-    },
-    amount_value: {
-      storage: amount_value.storage.map((val) => Number(val)),
-      len: Number(amount_value.len),
-    },
+    signature_limbs,
+    modulus_limbs,
+    redc_limbs,
+    data,
+    amount: amount_value,
+    currency_code,
+    sort_code,
   };
-}
-
-async function newRSAKey() {
-  return await crypto.subtle.generateKey(
-    {
-      name: 'RSA-PSS',
-      modulusLength: 2048,
-      publicExponent: new Uint8Array([0x01, 0x00, 0x01]), // 65537
-      hash: 'SHA-256',
-    },
-    true, // extractable
-    ['sign', 'verify']
-  );
 }
 
 function toBoundedVec(data, maxLength) {
@@ -143,11 +102,15 @@ function toProverToml(inputs) {
 }
 
 const main = async () => {
-  // generate RSA keypair
-  const rsa = await newRSAKey();
-  const inputs = await generateNoirInputs(paymentPayload, rsa);
+  const payload = fs.readFileSync('./revolut_payload.txt', 'utf8');
+  const signature =
+    '3e42c30cab535ed5a20dcac4d405004b5098451c72a80b4460b4e3e9a4bc89f131fa6078c1f7de1d740bfd8216e0ea8b67e5d78eaa7897d02902d73c50d3d0e7bbeb4e1b4b6b4d0281bcfb0e029c44f3ea90363e4e1d7ec591e09fc2bdd832428396b054f4f89336df49c01a88bb7e5b5015e706cd179467bf9794a79474884e799fb388050a7fdcaa074225bdc1b856048640e4fb7955a06675649acd89b049b603c0dc32dc5f37796453602f36cc982f86257055162457db6aec9377e7e9fdcb31e4ebce5d6e445c722f0e6a20936bda5c83481b12013078c0cc72551373586dc69db541d729b8d02521a26bb4f42068764438443e9c9164dca039b0fb1176';
+  const cert = fs.readFileSync('./revolut.cert', 'utf8');
+  const { publicKey } = new X509Certificate(cert);
+  const inputs = await generateNoirInputs(payload, signature, publicKey);
   const noir = new Noir(circuit);
-  await noir.execute(inputs);
+  const { witness } = await noir.execute(inputs);
+  console.log('Witness: ', witness);
 };
 
 main();

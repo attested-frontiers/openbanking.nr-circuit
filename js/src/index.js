@@ -3,10 +3,12 @@ const fs = require('fs');
 const NoirBignum = require('@mach-34/noir-bignum-paramgen');
 const { Noir } = require('@noir-lang/noir_js');
 const { X509Certificate, createPublicKey } = require('crypto');
+const { generatePartialSHA, sha256Pad } = require('@zk-email/helpers');
 
 // constants
 const MAX_AMOUNT_LENGTH = 10;
 const MAX_JWT_SIZE = 1536;
+const MAX_PAYLOAD_SIZE = 1024;
 
 function base64UrlToBytes(base64Url) {
   const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
@@ -41,8 +43,13 @@ async function generateNoirInputs(payload, signature, publicKey) {
   const dataBuffer = encoder.encode(payload);
   const data = toBoundedVec(Buffer.from(dataBuffer));
 
-  const headerDelimiter = payload.indexOf('.');
-  const payloadParsed = JSON.parse(payload.slice(headerDelimiter + 1));
+  const headerDelimiterIndex = payload.indexOf('.');
+  const payloadData = payload.slice(headerDelimiterIndex + 1);
+  const payloadParsed = JSON.parse(payloadData);
+  const payloadVec = toBoundedVec(
+    encoder.encode(payloadData),
+    MAX_PAYLOAD_SIZE
+  );
   const amount = payloadParsed.Data.Initiation.InstructedAmount.Amount;
   const amount_value = toBoundedVec(encoder.encode(amount), MAX_AMOUNT_LENGTH);
   const currency_code = Array.from(
@@ -52,6 +59,22 @@ async function generateNoirInputs(payload, signature, publicKey) {
     encoder.encode(payloadParsed.Data.Initiation.DebtorAccount.Identification)
   );
 
+  // from delimiter index compute lower end
+
+  const bodySHALength = Math.floor((payload.length + 63 + 65) / 64) * 64;
+  const [bodyPadded, bodyPaddedLen] = sha256Pad(
+    encoder.encode(payload),
+    Math.max(MAX_JWT_SIZE, bodySHALength)
+  );
+
+  // compute partial hash of header
+  const { precomputedSha, bodyRemainingLength, ...rest } = generatePartialSHA({
+    body: bodyPadded,
+    bodyLength: bodyPaddedLen,
+    selectorString: payload.slice(0, headerDelimiterIndex + 1),
+    maxRemainingBodyLength: MAX_JWT_SIZE,
+  });
+
   return {
     signature_limbs,
     modulus_limbs,
@@ -60,6 +83,9 @@ async function generateNoirInputs(payload, signature, publicKey) {
     amount: amount_value,
     currency_code,
     sort_code,
+    partial_hash_header: Array.from(u8ToU32(precomputedSha)),
+    header_delimiter_index: headerDelimiterIndex,
+    payload: payloadVec,
   };
 }
 
@@ -100,6 +126,18 @@ function toProverToml(inputs) {
   }
   return lines.concat(structs).join('\n');
 }
+
+const u8ToU32 = (input) => {
+  const out = new Uint32Array(input.length / 4);
+  for (let i = 0; i < out.length; i++) {
+    out[i] =
+      (input[i * 4 + 0] << 24) |
+      (input[i * 4 + 1] << 16) |
+      (input[i * 4 + 2] << 8) |
+      (input[i * 4 + 3] << 0);
+  }
+  return out;
+};
 
 const main = async () => {
   const payload = fs.readFileSync('./revolut_payload.txt', 'utf8');

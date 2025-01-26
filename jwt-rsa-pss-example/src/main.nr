@@ -3,12 +3,12 @@ mod utils;
 use bignum::{params::BigNumParams, RuntimeBigNum};
 use json_parser::JSON;
 use rsa_pss::rsa::verify_sha256_pss;
+use zkemail::partial_hash::{partial_sha256_var_start, partial_sha256_var_end};
 
 use utils::{check_delimiter_index, compare_payload, get_delimiter_index, get_payload};
 
 pub global MAX_JWT_SIZE: u32 = 1536;
 pub global MAX_PAYLOAD_LENGTH: u32 = 1024;
-pub global MAX_HEADER_LENGTH: u32 = MAX_JWT_SIZE - MAX_PAYLOAD_LENGTH;
 
 pub global CURRENCY_CODE_VALUE_LENGTH: u32 = 3;
 pub global CURRENCY_CODE_KEY_LENGTH: u32 = 8;
@@ -30,10 +30,13 @@ fn main(
     signature_limbs: [Field; 18],
     modulus_limbs: [Field; 18],
     redc_limbs: [Field; 18],
-    data: BoundedVec<u8, MAX_JWT_SIZE>,
+    partial_hash_start: [u32; 8],
+    partial_hash_start_preimage_length: u32,
+    header_delimiter_index: u32,
+    mut payload: BoundedVec<u8, MAX_PAYLOAD_LENGTH>, 
     amount: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH>,
     currency_code: [u8; CURRENCY_CODE_VALUE_LENGTH],
-    sort_code: [u8; SORT_CODE_VALUE_LENGTH]
+    sort_code: [u8; SORT_CODE_VALUE_LENGTH],
 ) {
     let has_multiplicative_inverse = false;
     let params: BigNumParams<18, 2048> =
@@ -42,18 +45,28 @@ fn main(
     let signature: RuntimeBigNum<18, 2048> = RuntimeBigNum::from_array(params, signature_limbs);
 
     // hash jwt
-    let hash: [u8; 32] = dep::std::hash::sha256_var(data.storage, data.len as u64);
+    let hash: [u8; 32] = partial_sha256_var_end(partial_hash_start, payload.storage, payload.len() as u64, payload.len() as u64 + partial_hash_start_preimage_length as u64);
 
     // verify signature over payload
     assert(verify_sha256_pss(hash, signature, 2048));
 
-    let payload: BoundedVec<u8, MAX_PAYLOAD_LENGTH> = unsafe { 
-        let delimiter_index = get_delimiter_index::<MAX_HEADER_LENGTH, MAX_JWT_SIZE>(data);
-        check_delimiter_index::<MAX_HEADER_LENGTH, MAX_JWT_SIZE>(data, delimiter_index);
-        let payload = get_payload::<MAX_JWT_SIZE, MAX_PAYLOAD_LENGTH>(data, delimiter_index);
-        compare_payload::<MAX_JWT_SIZE, MAX_PAYLOAD_LENGTH>(data, payload, delimiter_index);
-        payload
-    };
+    let carry_over_end_index = header_delimiter_index - partial_hash_start_preimage_length as u32;
+
+    // if carry over is not 0 then set first index to whitespace (32)
+    let mut byte = payload.get_unchecked(0);
+    if carry_over_end_index != 0 {
+        byte = 32;
+    }
+    payload.set(0, byte);
+
+    // set values prior and up to delimiter (".") to whitespace so JSON parser does not get angry
+    for i in 1..64 {
+        let mut index = i;
+        if i > carry_over_end_index {
+            index = carry_over_end_index;
+        }
+        payload.set(index, 32); 
+    }
 
     // init JSON
     let json: JSON<1024, 37, 128, 65, 2> = JSON::parse_json(payload.storage);
@@ -77,6 +90,12 @@ fn main(
     let currency_result = instructed_amt_obj.get_string_unchecked::<CURRENCY_CODE_KEY_LENGTH, CURRENCY_CODE_VALUE_LENGTH>(CURRENCY_CODE_KEY);
     assert(currency_result.storage == currency_code);
 }
+
+// TEST GLOBALS
+pub global TEST_HEADER_DELIMITER_INDEX_LENGTH: u32 = 431;
+pub global TEST_JWT_LENGTH: u32 = 1242;
+pub global TEST_PAYLOAD_LENGTH: u32 = TEST_JWT_LENGTH - TEST_PH_START_PREIMAGE_LENGTH;
+pub global TEST_PH_START_PREIMAGE_LENGTH: u32 = 384;
 
 #[test]
 fn test_main() {
@@ -146,18 +165,24 @@ fn test_main() {
     ];
 
     let jwt = comptime { "eyJraWQiOiJvSjQwLUcxVklxbUU2eUhuYnA4S1E1Qmk2bXciLCJhbGciOiJQUzI1NiIsImNyaXQiOlsiYjY0IiwiaHR0cDovL29wZW5iYW5raW5nLm9yZy51ay9pYXQiLCJodHRwOi8vb3BlbmJhbmtpbmcub3JnLnVrL2lzcyIsImh0dHA6Ly9vcGVuYmFua2luZy5vcmcudWsvdGFuIl0sImI2NCI6ZmFsc2UsImh0dHA6Ly9vcGVuYmFua2luZy5vcmcudWsvdGFuIjoib3BlbmJhbmtpbmcub3JnLnVrIiwiaHR0cDovL29wZW5iYW5raW5nLm9yZy51ay9pc3MiOiIwMDE1ODAwMDAxMDNVQXZBQU0iLCJodHRwOi8vb3BlbmJhbmtpbmcub3JnLnVrL2lhdCI6MTczNTgyNTE5OX0.{\"Data\":{\"DomesticPaymentId\":\"6776972f-e9af-ad6a-8cdd-ff2099bd2475\",\"Status\":\"Pending\",\"StatusUpdateDateTime\":\"2025-01-02T13:39:59.455059Z\",\"CreationDateTime\":\"2025-01-02T13:39:59.455059Z\",\"ConsentId\":\"6d2e1641-e486-4a3a-936b-065628f2a926\",\"Initiation\":{\"RemittanceInformation\":{\"Unstructured\":\"Shipment fee\"},\"DebtorAccount\":{\"SchemeName\":\"UK.OBIE.SortCodeAccountNumber\",\"Identification\":\"04290953215338\",\"Name\":\"Acme Corporation\"},\"EndToEndIdentification\":\"E2E123\",\"InstructionIdentification\":\"ID412\",\"CreditorAccount\":{\"Name\":\"Receiver Co.\",\"SchemeName\":\"UK.OBIE.SortCodeAccountNumber\",\"Identification\":\"11223321325698\"},\"InstructedAmount\":{\"Amount\":\"1.00\",\"Currency\":\"GBP\"}}},\"Links\":{\"Self\":\"https://sandbox-oba.revolut.com/domestic-payments/6776972f-e9af-ad6a-8cdd-ff2099bd2475\"},\"Meta\":{\"TotalPages\":1}}".as_bytes() };
-    // change per JWT
-    let jwt_size = jwt.len();
 
-    let mut padded_jwt: [u8; MAX_JWT_SIZE] = [0; MAX_JWT_SIZE];
-    for i in 0..jwt.len() {
-        padded_jwt[i] = jwt[i];
+    // extract beginning of JWT to create partial hash start. Smallest value divisble by block size (64) is
+    // 384 in this case 
+    let mut partial_hash_start_preimage: [u8; 384] = [0; 384];
+    for i in 0..partial_hash_start_preimage.len() {
+        partial_hash_start_preimage[i] = jwt[i];
     }
 
-    let jwt_data: BoundedVec<u8, MAX_JWT_SIZE> = BoundedVec {
-        storage: padded_jwt,
-        len: jwt_size
-    };
+    // partial hash start
+    let pre_hash = partial_sha256_var_start::<TEST_PH_START_PREIMAGE_LENGTH>(partial_hash_start_preimage);
+
+    let mut payload: [u8; MAX_PAYLOAD_LENGTH] = [32; MAX_PAYLOAD_LENGTH];
+    // extract rest of payload to pass in circuit
+    for i in 0..TEST_JWT_LENGTH - TEST_PH_START_PREIMAGE_LENGTH {
+        payload[i] = jwt[i + TEST_PH_START_PREIMAGE_LENGTH];
+    }
+
+    let payload_vec: BoundedVec<u8, MAX_PAYLOAD_LENGTH> = BoundedVec { storage: payload, len: TEST_PAYLOAD_LENGTH };
 
     let amount = comptime { "1.00".as_bytes() };
     let currency_code = comptime { "GBP".as_bytes() };
@@ -174,7 +199,10 @@ fn test_main() {
         signature_limbs,
         modulus_limbs,
         redc_limbs,
-        jwt_data,
+        pre_hash,
+        TEST_PH_START_PREIMAGE_LENGTH,
+        TEST_HEADER_DELIMITER_INDEX_LENGTH,
+        payload_vec,
         amount_value,
         currency_code,
         sort_code

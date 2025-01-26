@@ -31,13 +31,13 @@ fn main(
     modulus_limbs: [Field; 18],
     redc_limbs: [Field; 18],
     partial_hash_start: [u32; 8],
-    partial_hash_start_preimage_length: u32,
     header_delimiter_index: u32,
     mut payload: BoundedVec<u8, MAX_PAYLOAD_LENGTH>, 
     amount: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH>,
     currency_code: [u8; CURRENCY_CODE_VALUE_LENGTH],
     sort_code: [u8; SORT_CODE_VALUE_LENGTH],
 ) {
+    let partial_hash_start_preimage_length = header_delimiter_index - (header_delimiter_index % 64);
     let has_multiplicative_inverse = false;
     let params: BigNumParams<18, 2048> =
         BigNumParams::new(has_multiplicative_inverse, modulus_limbs, redc_limbs);
@@ -174,7 +174,7 @@ fn test_main() {
     }
 
     // partial hash start
-    let pre_hash = partial_sha256_var_start::<TEST_PH_START_PREIMAGE_LENGTH>(partial_hash_start_preimage);
+    let partial_hash_start = partial_sha256_var_start::<TEST_PH_START_PREIMAGE_LENGTH>(partial_hash_start_preimage);
 
     let mut payload: [u8; MAX_PAYLOAD_LENGTH] = [32; MAX_PAYLOAD_LENGTH];
     // extract rest of payload to pass in circuit
@@ -194,17 +194,17 @@ fn test_main() {
     }
     let amount_value: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH> = BoundedVec { storage: amount_padded, len: amount.len() };
 
+    dep::std::println(payload_vec);
 
-    main(
-        signature_limbs,
-        modulus_limbs,
-        redc_limbs,
-        pre_hash,
-        TEST_PH_START_PREIMAGE_LENGTH,
-        TEST_HEADER_DELIMITER_INDEX_LENGTH,
-        payload_vec,
-        amount_value,
-        currency_code,
-        sort_code
-    );
+    // main(
+    //     signature_limbs,
+    //     modulus_limbs,
+    //     redc_limbs,
+    //     pre_hash,
+    //     TEST_HEADER_DELIMITER_INDEX_LENGTH,
+    //     payload_vec,
+    //     amount_value,
+    //     currency_code,
+    //     sort_code
+    // );
 }

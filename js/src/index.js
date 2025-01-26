@@ -3,7 +3,7 @@ const fs = require('fs');
 const NoirBignum = require('@mach-34/noir-bignum-paramgen');
 const { Noir } = require('@noir-lang/noir_js');
 const { X509Certificate, createPublicKey } = require('crypto');
-const { generatePartialSHA, sha256Pad } = require('@zk-email/helpers');
+const { partialSha } = require('@zk-email/helpers');
 
 // constants
 const MAX_AMOUNT_LENGTH = 10;
@@ -41,15 +41,21 @@ async function generateNoirInputs(payload, signature, publicKey) {
   // extract payload data
   const encoder = new TextEncoder();
   const dataBuffer = encoder.encode(payload);
-  const data = toBoundedVec(Buffer.from(dataBuffer));
 
   const headerDelimiterIndex = payload.indexOf('.');
+  // calculate value below or up to delimiter index that is divisible by block size
+  const hashToIndex = headerDelimiterIndex - (headerDelimiterIndex % 64);
+
+  const payloadVec = toBoundedVec(
+    encoder.encode(payload.slice(hashToIndex)),
+    MAX_PAYLOAD_SIZE,
+    32
+  );
+
+  // parse out nested JSON values
   const payloadData = payload.slice(headerDelimiterIndex + 1);
   const payloadParsed = JSON.parse(payloadData);
-  const payloadVec = toBoundedVec(
-    encoder.encode(payloadData),
-    MAX_PAYLOAD_SIZE
-  );
+
   const amount = payloadParsed.Data.Initiation.InstructedAmount.Amount;
   const amount_value = toBoundedVec(encoder.encode(amount), MAX_AMOUNT_LENGTH);
   const currency_code = Array.from(
@@ -59,44 +65,33 @@ async function generateNoirInputs(payload, signature, publicKey) {
     encoder.encode(payloadParsed.Data.Initiation.DebtorAccount.Identification)
   );
 
-  // from delimiter index compute lower end
-
-  const bodySHALength = Math.floor((payload.length + 63 + 65) / 64) * 64;
-  const [bodyPadded, bodyPaddedLen] = sha256Pad(
-    encoder.encode(payload),
-    Math.max(MAX_JWT_SIZE, bodySHALength)
-  );
-
   // compute partial hash of header
-  const { precomputedSha, bodyRemainingLength, ...rest } = generatePartialSHA({
-    body: bodyPadded,
-    bodyLength: bodyPaddedLen,
-    selectorString: payload.slice(0, headerDelimiterIndex + 1),
-    maxRemainingBodyLength: MAX_JWT_SIZE,
-  });
+  const partialHashStart = partialSha(
+    encoder.encode(payload.slice(0, hashToIndex)),
+    hashToIndex
+  );
 
   return {
     signature_limbs,
     modulus_limbs,
     redc_limbs,
-    data,
+    partial_hash_start: Array.from(u8ToU32(partialHashStart)),
+    header_delimiter_index: headerDelimiterIndex,
+    payload: payloadVec,
     amount: amount_value,
     currency_code,
     sort_code,
-    partial_hash_header: Array.from(u8ToU32(precomputedSha)),
-    header_delimiter_index: headerDelimiterIndex,
-    payload: payloadVec,
   };
 }
 
-function toBoundedVec(data, maxLength) {
+function toBoundedVec(data, maxLength, fillVal) {
   let length = maxLength === undefined ? MAX_JWT_SIZE : maxLength;
   if (data.length > length) {
     throw new Error(`Data exceeds maximum length of ${length} bytes`);
   }
   data = Array.from(data);
   const storage = data
-    .concat(Array(length - data.length).fill(0))
+    .concat(Array(length - data.length).fill(fillVal ?? 0))
     .map((byte) => byte.toString());
   return { storage, len: data.length.toString() };
 }

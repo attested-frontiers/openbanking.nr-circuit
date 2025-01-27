@@ -68,8 +68,8 @@ fn main(
         payload.set(index, 32); 
     }
 
-    // init JSON
-    let json: JSON<1024, 37, 128, 65, 2> = JSON::parse_json(payload.storage);
+    // init JSON. Note: This may break with another payload and params will need tweaked
+    let json: JSON<1024, 34, 106, 29, 2> = JSON::parse_json(payload.storage);
 
     let data_obj = json.get_object(PAYLOAD_DATA_KEY).unwrap();
     let initiation_obj =  data_obj.get_object(INITIATION_KEY).unwrap();
@@ -168,7 +168,7 @@ fn test_main() {
 
     // extract beginning of JWT to create partial hash start. Smallest value divisble by block size (64) is
     // 384 in this case 
-    let mut partial_hash_start_preimage: [u8; 384] = [0; 384];
+    let mut partial_hash_start_preimage: [u8; TEST_PH_START_PREIMAGE_LENGTH] = [0; TEST_PH_START_PREIMAGE_LENGTH];
     for i in 0..partial_hash_start_preimage.len() {
         partial_hash_start_preimage[i] = jwt[i];
     }
@@ -194,17 +194,15 @@ fn test_main() {
     }
     let amount_value: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH> = BoundedVec { storage: amount_padded, len: amount.len() };
 
-    dep::std::println(payload_vec);
-
-    // main(
-    //     signature_limbs,
-    //     modulus_limbs,
-    //     redc_limbs,
-    //     pre_hash,
-    //     TEST_HEADER_DELIMITER_INDEX_LENGTH,
-    //     payload_vec,
-    //     amount_value,
-    //     currency_code,
-    //     sort_code
-    // );
+    main(
+        signature_limbs,
+        modulus_limbs,
+        redc_limbs,
+        partial_hash_start,
+        TEST_HEADER_DELIMITER_INDEX_LENGTH,
+        payload_vec,
+        amount_value,
+        currency_code,
+        sort_code
+    );
 }

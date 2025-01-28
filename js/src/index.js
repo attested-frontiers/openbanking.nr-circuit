@@ -1,157 +1,149 @@
-const crypto = require('crypto');
+const circuit = require('../../jwt-rsa-pss-example/target/jwt_rsa_pss_example.json');
 const fs = require('fs');
-const { Noir } = require('@noir-lang/noir_js');
-const circuit = require("../../target/jwt_test.json");
-const paymentPayload = require("./data.json");
 const NoirBignum = require('@mach-34/noir-bignum-paramgen');
+const { Noir } = require('@noir-lang/noir_js');
+const { X509Certificate, createPublicKey } = require('crypto');
+const { partialSha } = require('@zk-email/helpers');
+
+// constants
+const MAX_AMOUNT_LENGTH = 10;
 const MAX_JWT_SIZE = 1536;
-
-/**
- * Given a claim (?) from a JWT, generate a JWS signature over the claim
- * @param {*} payload 
- * @returns 
- */
-async function generateJWSSignature(payload, privateKey, publicKey) {
-    try {
-        // Base64URL encode header and payload
-        const base64Data = (typeof payload === 'string' && isBase64(payload))
-            ? data
-            : Buffer.from(JSON.stringify(payload)).toString('base64');
-
-        // Convert base64 to ArrayBuffer for signing
-        const encoder = new TextEncoder();
-        const dataBuffer = encoder.encode(base64Data);
-
-        const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-
-        // If you need it as Uint8Array:
-        const hashArray = new Uint8Array(hashBuffer);
-        console.log("Hash", hashArray);
-
-        // Sign the data
-        const signature = await crypto.subtle.sign(
-            {
-                name: "RSASSA-PKCS1-v1_5",
-            },
-            privateKey,
-            dataBuffer
-        );
-
-        // Return complete JWS
-        let sig = BigInt(`0x${Buffer.from(signature).toString('hex')}`);
-        return { data: toBoundedVec(Buffer.from(dataBuffer)), signature: NoirBignum.bnToLimbStrArray(sig) };
-    } catch (error) {
-        console.error('Error generating JWS signature:', error);
-        throw error;
-    }
-}
-
-async function newRSAKey() {
-    return await crypto.subtle.generateKey(
-        {
-            name: "RSASSA-PKCS1-v1_5",
-            modulusLength: 2048,
-            publicExponent: new Uint8Array([0x01, 0x00, 0x01]), // 65537
-            hash: "SHA-256",
-        },
-        true, // extractable
-        ["sign", "verify"]
-    );
-}
-
-async function pubkeyFromKeypair(keyPair) {
-    const pubkey = await crypto.subtle.exportKey("jwk", keyPair.publicKey)
-    const modulus = bytesToBigInt(base64UrlToBytes(pubkey.n));
-    return {
-        modulus: NoirBignum.bnToLimbStrArray(modulus),
-        redc: NoirBignum.bnToRedcLimbStrArray(modulus)
-    }
-}
+const MAX_PAYLOAD_SIZE = 1024;
 
 function base64UrlToBytes(base64Url) {
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const padding = '='.repeat((4 - base64.length % 4) % 4);
-    const base64Padded = base64 + padding;
-    return Uint8Array.from(atob(base64Padded), c => c.charCodeAt(0));
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const padding = '='.repeat((4 - (base64.length % 4)) % 4);
+  const base64Padded = base64 + padding;
+  return Uint8Array.from(atob(base64Padded), (c) => c.charCodeAt(0));
 }
 
 function bytesToBigInt(bytes) {
-    let hex = Array.from(bytes)
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-    return BigInt('0x' + hex);
+  let hex = Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+  return BigInt('0x' + hex);
 }
 
-function toBoundedVec(data, maxLength) {
-    let length = maxLength === undefined
-        ? MAX_JWT_SIZE
-        : maxLength;
-    if (data.length > length) {
-        throw new Error(`Data exceeds maximum length of ${length} bytes`);
-    }
-    data = Array.from(data);
-    const storage = data.concat(Array(length - data.length).fill(0)).map(byte => byte.toString());
-    return { storage, len: data.length.toString() }
+async function generatePubkeyParams(pubkey) {
+  const modulus = bytesToBigInt(base64UrlToBytes(pubkey.n));
+  return {
+    modulus_limbs: NoirBignum.bnToLimbStrArray(modulus),
+    redc_limbs: NoirBignum.bnToRedcLimbStrArray(modulus),
+  };
 }
 
-async function generateNoirInputs(payload, keypair) {
-    const { data, signature } = await generateJWSSignature(payload, keypair.privateKey, keypair.publicKey);
+async function generateNoirInputs(payload, signature, publicKey) {
+  const { modulus_limbs, redc_limbs } = await generatePubkeyParams(
+    publicKey.export({ format: 'jwk' })
+  );
+  const signature_limbs = NoirBignum.bnToLimbStrArray(signature);
 
-    const pubkey = await pubkeyFromKeypair(keypair);
-    return {
-        // data,
-        data: data.storage,
-        data_len: data.len,
-        pubkey_modulus_limbs: pubkey.modulus,
-        redc_params_limbs: pubkey.redc,
-        signature_limbs: signature,
-        // // partial_hash: ["0", "0", "0", "0", "0", "0", "0", "0"],
-        // full_data_length: data.len,
-        // is_partial_hash: "0"
-    }
+  // extract payload data
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(payload);
+
+  const headerDelimiterIndex = payload.indexOf('.');
+  // calculate value below or up to delimiter index that is divisible by block size
+  const hashToIndex = headerDelimiterIndex - (headerDelimiterIndex % 64);
+
+  const payloadVec = toBoundedVec(
+    encoder.encode(payload.slice(hashToIndex)),
+    MAX_PAYLOAD_SIZE,
+    32
+  );
+
+  // parse out nested JSON values
+  const payloadData = payload.slice(headerDelimiterIndex + 1);
+  const payloadParsed = JSON.parse(payloadData);
+
+  const amount = payloadParsed.Data.Initiation.InstructedAmount.Amount;
+  const amount_value = toBoundedVec(encoder.encode(amount), MAX_AMOUNT_LENGTH);
+  const currency_code = Array.from(
+    encoder.encode(payloadParsed.Data.Initiation.InstructedAmount.Currency)
+  );
+  const sort_code = Array.from(
+    encoder.encode(payloadParsed.Data.Initiation.DebtorAccount.Identification)
+  );
+
+  // compute partial hash of header
+  const partialHashStart = partialSha(
+    encoder.encode(payload.slice(0, hashToIndex)),
+    hashToIndex
+  );
+
+  return {
+    signature_limbs,
+    modulus_limbs,
+    redc_limbs,
+    partial_hash_start: Array.from(u8ToU32(partialHashStart)),
+    header_delimiter_index: headerDelimiterIndex,
+    payload: payloadVec,
+    amount: amount_value,
+    currency_code,
+    sort_code,
+  };
+}
+
+function toBoundedVec(data, maxLength, fillVal) {
+  let length = maxLength === undefined ? MAX_JWT_SIZE : maxLength;
+  if (data.length > length) {
+    throw new Error(`Data exceeds maximum length of ${length} bytes`);
+  }
+  data = Array.from(data);
+  const storage = data
+    .concat(Array(length - data.length).fill(fillVal ?? 0))
+    .map((byte) => byte.toString());
+  return { storage, len: data.length.toString() };
 }
 
 function toProverToml(inputs) {
-    const lines = [];
-    const structs = [];
-    for (const [key, value] of Object.entries(inputs)) {
-        if (Array.isArray(value)) {
-            const valueStrArr = value.map((val) => `'${val}'`);
-            lines.push(`${key} = [${valueStrArr.join(", ")}]`);
-        } else if (typeof value === "string") {
-            lines.push(`${key} = '${value}'`);
+  const lines = [];
+  const structs = [];
+  for (const [key, value] of Object.entries(inputs)) {
+    if (Array.isArray(value)) {
+      const valueStrArr = value.map((val) => `'${val}'`);
+      lines.push(`${key} = [${valueStrArr.join(', ')}]`);
+    } else if (typeof value === 'string') {
+      lines.push(`${key} = '${value}'`);
+    } else {
+      let values = '';
+      for (const [k, v] of Object.entries(value)) {
+        if (Array.isArray(v)) {
+          values = values.concat(
+            `${k} = [${v.map((val) => `'${val}'`).join(', ')}]\n`
+          );
         } else {
-            let values = "";
-            for (const [k, v] of Object.entries(value)) {
-                if (Array.isArray(v)) {
-                    values = values.concat(`${k} = [${v.map((val) => `'${val}'`).join(", ")}]\n`);
-                } else {
-                    values = values.concat(`${k} = '${v}'\n`);
-                }
-            }
-            structs.push(`[${key}]\n${values}`);
+          values = values.concat(`${k} = '${v}'\n`);
         }
+      }
+      structs.push(`[${key}]\n${values}`);
     }
-    return lines.concat(structs).join("\n");
+  }
+  return lines.concat(structs).join('\n');
 }
 
-async function execute(inputs) {
-    const noir = new Noir(circuit);
-    return await noir.execute(inputs);
-}
+const u8ToU32 = (input) => {
+  const out = new Uint32Array(input.length / 4);
+  for (let i = 0; i < out.length; i++) {
+    out[i] =
+      (input[i * 4 + 0] << 24) |
+      (input[i * 4 + 1] << 16) |
+      (input[i * 4 + 2] << 8) |
+      (input[i * 4 + 3] << 0);
+  }
+  return out;
+};
 
-// console.log(generateJWSSignature(paymentPayload));
+const main = async () => {
+  const payload = fs.readFileSync('./revolut_payload.txt', 'utf8');
+  const signature =
+    '3e42c30cab535ed5a20dcac4d405004b5098451c72a80b4460b4e3e9a4bc89f131fa6078c1f7de1d740bfd8216e0ea8b67e5d78eaa7897d02902d73c50d3d0e7bbeb4e1b4b6b4d0281bcfb0e029c44f3ea90363e4e1d7ec591e09fc2bdd832428396b054f4f89336df49c01a88bb7e5b5015e706cd179467bf9794a79474884e799fb388050a7fdcaa074225bdc1b856048640e4fb7955a06675649acd89b049b603c0dc32dc5f37796453602f36cc982f86257055162457db6aec9377e7e9fdcb31e4ebce5d6e445c722f0e6a20936bda5c83481b12013078c0cc72551373586dc69db541d729b8d02521a26bb4f42068764438443e9c9164dca039b0fb1176';
+  const cert = fs.readFileSync('./revolut.cert', 'utf8');
+  const { publicKey } = new X509Certificate(cert);
+  const inputs = await generateNoirInputs(payload, signature, publicKey);
+  const noir = new Noir(circuit);
+  const { witness } = await noir.execute(inputs);
+  console.log('Witness: ', witness);
+};
 
-async function main() {
-    // const inputs = generateNoirInputs(paymentPayload);
-    // const { witness, returnValue } = await execute({ jwt: inputs });
-    // console.log("inp len", inputs.redc_params_limbs.length)
-    // console.log("success :)")
-
-    const key = await newRSAKey();
-    const inputs = await generateNoirInputs(paymentPayload, key);
-    console.log(toProverToml(inputs))
-    // const { witness, returnValue } = await execute(inputs)
-}
-
-main()
+main();

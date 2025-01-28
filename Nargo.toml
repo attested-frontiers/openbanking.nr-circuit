@@ -8,7 +8,7 @@ compiler_version = ">=0.35.0"
 # jwt = { git = "https://github.com/zkemail/noir-jwt", tag = "v0.2.0" }
 jwt = { path = "./noir-jwt" } 
 rsa = { git = "https://github.com/noir-lang/noir_rsa", tag = "v0.4.0", directory="lib" }
-base64 = { git =  "https://github.com/noir-lang/noir_base64", tag = "v0.3.0" }
+base64 = { git =  "https://github.com/noir-lang/noir_base64", tag = "v0.3.1" }
 # # string_search = { path = "./noir_string_search" } # switch to noir-org when 0.36.0 is merged
 bignum = { git = "https://github.com/noir-lang/noir-bignum", tag = "v0.4.1" }
 # zkemail = { git = "https://github.com/zkemail/zkemail.nr", tag="update-deps", directory="lib" } # for partial SHA

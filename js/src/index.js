@@ -1,8 +1,8 @@
-const circuit = require('../../jwt-rsa-pss-example/target/jwt_rsa_pss_example.json');
+const circuit = require('../../target/jwt_rsa_pss_example.json');
 const fs = require('fs');
 const NoirBignum = require('@mach-34/noir-bignum-paramgen');
 const { Noir } = require('@noir-lang/noir_js');
-const { X509Certificate, createPublicKey } = require('crypto');
+const { X509Certificate } = require('crypto');
 const { partialSha } = require('@zk-email/helpers');
 
 // constants

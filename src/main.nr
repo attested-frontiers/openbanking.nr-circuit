@@ -1,298 +1,207 @@
 use bignum::{params::BigNumParams, RuntimeBigNum};
-use jwt::JWT;
-use rsa::{rsa::verify_sha256_pkcs1v15, types::RBN2048};
-use std::hash::{poseidon2::Poseidon2, sha256_var};
-// // use string_search::{SubString, StringBody};
-use base64::BASE64_URL_DECODER;
-// use zkemail::partial_hash::partial_sha256_var_end;
+use json_parser::JSON;
+use rsa_pss::rsa::verify_sha256_pss;
+use zkemail::partial_hash::{partial_sha256_var_start, partial_sha256_var_end};
 
 pub global MAX_JWT_SIZE: u32 = 1536;
-pub global KEY_LIMB_SIZE: u32 = 18;
-pub global PAYLOAD_RANGE: u32 = 1328;
+pub global MAX_PAYLOAD_LENGTH: u32 = 1024;
 
-pub global SORT_CODE_KEY_LENGTH: u32 = 14;
-pub global SORT_CODE_KEY: [u8; SORT_CODE_KEY_LENGTH] = comptime { "Identification".as_bytes() };
-pub global SORT_CODE_VALUE_LENGTH: u32 = 14;
-
-pub global CURRENCY_CODE_KEY_LENGTH: u32 = 8;
-pub global CURRENCY_CODE_KEY: [u8; CURRENCY_CODE_KEY_LENGTH] = comptime { "Currency".as_bytes() };
 pub global CURRENCY_CODE_VALUE_LENGTH: u32 = 3;
-pub global CURRENCY_CODE_VALUE: [u8; CURRENCY_CODE_VALUE_LENGTH] = comptime { "GBP".as_bytes() };
-
+pub global CURRENCY_CODE_KEY_LENGTH: u32 = 8;
+pub global SORT_CODE_KEY_LENGTH: u32 = 14;
+pub global SORT_CODE_VALUE_LENGTH: u32 = 14;
 pub global AMOUNT_KEY_LENGTH: u32 = 6;
-pub global AMOUNT_KEY: [u8; AMOUNT_KEY_LENGTH] = comptime { "Amount".as_bytes() };
 pub global MAX_AMOUNT_VALUE_LENGTH: u32 = 10;
 
-pub global ESCROW_COMMITMENT_PREIMAGE_LENGTH: u32 = CURRENCY_CODE_VALUE_LENGTH + SORT_CODE_VALUE_LENGTH;
+pub global AMOUNT_KEY: [u8; AMOUNT_KEY_LENGTH] = comptime { "Amount".as_bytes() };
+pub global CURRENCY_CODE_KEY: [u8; CURRENCY_CODE_KEY_LENGTH] = comptime { "Currency".as_bytes() };
+pub global DEBTOR_ACCOUNT_KEY: [u8; 13] = comptime { "DebtorAccount".as_bytes() };
+pub global INITIATION_KEY: [u8; 10] = comptime { "Initiation".as_bytes() };
+pub global INSTRUCTED_AMOUNT_KEY: [u8; 16] = comptime { "InstructedAmount".as_bytes() };
+pub global PAYLOAD_DATA_KEY: [u8; 4] = comptime { "Data".as_bytes() };
+pub global SORT_CODE_KEY: [u8; SORT_CODE_KEY_LENGTH] = comptime { "Identification".as_bytes() };
 
-fn bytes_to_num(amount_value: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH>) -> Field {
-    // convert amount from bytes to field and add 6 decimals
-    let mut converted: Field = 0;
-    let mut pow: Field = 10.pow_32(amount_value.len as Field - 2);
-    for i in 0..MAX_AMOUNT_VALUE_LENGTH {
-        let byte = amount_value.storage[i];
-        if (i < amount_value.len) & (byte != 0x2E) {
-            let val = (byte - 0x30) as Field;
-            converted = converted + val * pow;
-            pow = pow / 10;
-        }
-    }
-    converted * 10.pow_32(6)
-}
 
 fn main(
-    data: BoundedVec<u8, MAX_JWT_SIZE>,
-    pubkey_modulus_limbs: [Field; KEY_LIMB_SIZE],
-    redc_params_limbs: [Field; KEY_LIMB_SIZE],
-    signature_limbs: [Field; KEY_LIMB_SIZE],
-    sort_code_value: [u8; SORT_CODE_VALUE_LENGTH],
-    amount_value: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH>,
-) -> pub [Field; 3] {
-    // instantiate jwt
-    let jwt: JWT<MAX_JWT_SIZE> = JWT::init(
-        data,
-        0,
-        pubkey_modulus_limbs,
-        redc_params_limbs,
-        signature_limbs,
-    );
-    // verify rsa signature over jwt
-    jwt.verify();
+    signature_limbs: [Field; 18],
+    modulus_limbs: [Field; 18],
+    redc_limbs: [Field; 18],
+    partial_hash_start: [u32; 8],
+    header_delimiter_index: u32,
+    mut payload: BoundedVec<u8, MAX_PAYLOAD_LENGTH>, 
+    amount: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH>,
+    currency_code: [u8; CURRENCY_CODE_VALUE_LENGTH],
+    sort_code: [u8; SORT_CODE_VALUE_LENGTH],
+) {
+    // calculate length of payload already hashed by finding next lowest value divisible by 64 from delimiter index
+    let partial_hash_start_preimage_length = header_delimiter_index - (header_delimiter_index % 64);
 
-    // verify existence of sort code in JWT
-    let sort_code_vec: BoundedVec<u8, SORT_CODE_VALUE_LENGTH> =
-        BoundedVec { storage: sort_code_value, len: SORT_CODE_VALUE_LENGTH };
-    jwt.validate_key_value::<PAYLOAD_RANGE, SORT_CODE_KEY_LENGTH, SORT_CODE_VALUE_LENGTH>(
-        SORT_CODE_KEY,
-        sort_code_vec,
-    );
+    let has_multiplicative_inverse = false;
+    let params: BigNumParams<18, 2048> =
+        BigNumParams::new(has_multiplicative_inverse, modulus_limbs, redc_limbs);
 
-    // // verify existence of currency code in JWT
-    // let currency_code_vec: BoundedVec<u8, CURRENCY_CODE_VALUE_LENGTH> = BoundedVec {
-    //     storage: CURRENCY_CODE_VALUE,
-    //     len: CURRENCY_CODE_VALUE_LENGTH
-    // };
-    // jwt.validate_key_value::<PAYLOAD_RANGE, CURRENCY_CODE_KEY_LENGTH, CURRENCY_CODE_VALUE_LENGTH>(
-    //     CURRENCY_CODE_KEY,
-    //     currency_code_vec
-    // );
+    let signature: RuntimeBigNum<18, 2048> = RuntimeBigNum::from_array(params, signature_limbs);
 
-    // validate existence of transfer amount
-    jwt.validate_key_value::<PAYLOAD_RANGE, AMOUNT_KEY_LENGTH, MAX_AMOUNT_VALUE_LENGTH>(
-        AMOUNT_KEY,
-        amount_value,
-    );
-    // convert amount to u32
-    let amount_num = bytes_to_num(amount_value);
+    // get complete hash of JWT by taking partial hash start and hashing the rest of the payload
+    let hash: [u8; 32] = partial_sha256_var_end(partial_hash_start, payload.storage, payload.len() as u64, payload.len() as u64 + partial_hash_start_preimage_length as u64);
 
-    // build the escrow commitment
-    let mut preimage_bytes: [u8; ESCROW_COMMITMENT_PREIMAGE_LENGTH] =
-        [0; ESCROW_COMMITMENT_PREIMAGE_LENGTH];
-    for i in 0..CURRENCY_CODE_VALUE_LENGTH {
-        preimage_bytes[i] = CURRENCY_CODE_VALUE[i];
+    // verify signature over payload
+    assert(verify_sha256_pss(hash, signature, 2048));
+
+    // calculate remaning chars up to header / payload delimiter (".") that were not in the initial hash
+    let carry_over_end_index = header_delimiter_index - partial_hash_start_preimage_length as u32;
+
+    // if carry over is not 0 then set first index to whitespace (32)
+    let mut byte = payload.get_unchecked(0);
+    if carry_over_end_index != 0 {
+        byte = 32;
     }
-    for i in 0..SORT_CODE_VALUE_LENGTH {
-        preimage_bytes[CURRENCY_CODE_VALUE_LENGTH + i] = sort_code_value[i];
+    payload.set(0, byte);
+
+    // set values prior and up to delimiter to whitespace so JSON parser does not get angry
+    for i in 1..64 {
+        let mut index = i;
+        if i > carry_over_end_index {
+            index = carry_over_end_index;
+        }
+        payload.set(index, 32); 
     }
-    let preimage = Field::from_le_bytes::<ESCROW_COMMITMENT_PREIMAGE_LENGTH>(preimage_bytes);
-    let escrow_commitment = Poseidon2::hash([preimage], 1);
 
-    // // hash the signing key
-    let signing_key_hash = Poseidon2::hash(pubkey_modulus_limbs, KEY_LIMB_SIZE);
+    // init JSON. Note: Parameters may need to be adjusted depending on payload variability
+    let json: JSON<1024, 34, 106, 29, 2> = JSON::parse_json(payload.storage);
 
-    [amount_num, signing_key_hash, escrow_commitment]
+    // parse through nested JSON to extract values
+    let data_obj = json.get_object(PAYLOAD_DATA_KEY).unwrap();
+    let initiation_obj =  data_obj.get_object(INITIATION_KEY).unwrap();
+    let debtor_acc_obj = initiation_obj.get_object(DEBTOR_ACCOUNT_KEY).unwrap();
+
+    // extract sort code
+    let sort_code_result = debtor_acc_obj.get_string_unchecked::<SORT_CODE_KEY_LENGTH, SORT_CODE_VALUE_LENGTH>(SORT_CODE_KEY);
+    assert(sort_code_result.storage == sort_code);
+
+    let instructed_amt_obj = initiation_obj.get_object(INSTRUCTED_AMOUNT_KEY).unwrap();    
+    // extract amount
+    let amount_result = instructed_amt_obj.get_string_unchecked::<AMOUNT_KEY_LENGTH, MAX_AMOUNT_VALUE_LENGTH>(AMOUNT_KEY);
+    assert(amount_result.storage == amount.storage);
+
+    // extract currency code
+    let currency_result = instructed_amt_obj.get_string_unchecked::<CURRENCY_CODE_KEY_LENGTH, CURRENCY_CODE_VALUE_LENGTH>(CURRENCY_CODE_KEY);
+    assert(currency_result.storage == currency_code);
 }
+
+// TEST GLOBALS
+pub global TEST_HEADER_DELIMITER_INDEX_LENGTH: u32 = 431;
+pub global TEST_JWT_LENGTH: u32 = 1242;
+pub global TEST_PAYLOAD_LENGTH: u32 = TEST_JWT_LENGTH - TEST_PH_START_PREIMAGE_LENGTH;
+pub global TEST_PH_START_PREIMAGE_LENGTH: u32 = 384;
 
 #[test]
-fn should_pass() {
-    let data: BoundedVec<u8, MAX_JWT_SIZE> = BoundedVec {
-        storage: [
-            101, 121, 74, 69, 89, 88, 82, 104, 73, 106, 112, 55, 73, 107, 78, 118, 98, 110, 78, 108,
-            98, 110, 82, 74, 90, 67, 73, 54, 73, 106, 85, 52, 79, 84, 73, 122, 73, 105, 119, 105,
-            85, 51, 82, 104, 100, 72, 86, 122, 73, 106, 111, 105, 81, 88, 100, 104, 97, 88, 82, 112,
-            98, 109, 100, 66, 100, 88, 82, 111, 98, 51, 74, 112, 99, 50, 70, 48, 97, 87, 57, 117,
-            73, 105, 119, 105, 81, 51, 74, 108, 89, 88, 82, 112, 98, 50, 53, 69, 89, 88, 82, 108,
-            86, 71, 108, 116, 90, 83, 73, 54, 73, 106, 73, 119, 77, 84, 99, 116, 77, 68, 89, 116,
-            77, 68, 86, 85, 77, 84, 85, 54, 77, 84, 85, 54, 77, 84, 77, 114, 77, 68, 65, 54, 77, 68,
-            65, 105, 76, 67, 74, 84, 100, 71, 70, 48, 100, 88, 78, 86, 99, 71, 82, 104, 100, 71, 86,
-            69, 89, 88, 82, 108, 86, 71, 108, 116, 90, 83, 73, 54, 73, 106, 73, 119, 77, 84, 99,
-            116, 77, 68, 89, 116, 77, 68, 86, 85, 77, 84, 85, 54, 77, 84, 85, 54, 77, 84, 77, 114,
-            77, 68, 65, 54, 77, 68, 65, 105, 76, 67, 74, 74, 98, 109, 108, 48, 97, 87, 70, 48, 97,
-            87, 57, 117, 73, 106, 112, 55, 73, 107, 108, 117, 99, 51, 82, 121, 100, 87, 78, 48, 97,
-            87, 57, 117, 83, 87, 82, 108, 98, 110, 82, 112, 90, 109, 108, 106, 89, 88, 82, 112, 98,
-            50, 52, 105, 79, 105, 74, 66, 81, 48, 49, 70, 78, 68, 69, 121, 73, 105, 119, 105, 82,
-            87, 53, 107, 86, 71, 57, 70, 98, 109, 82, 74, 90, 71, 86, 117, 100, 71, 108, 109, 97,
-            87, 78, 104, 100, 71, 108, 118, 98, 105, 73, 54, 73, 107, 90, 83, 82, 86, 78, 68, 84,
-            121, 52, 121, 77, 84, 77, 119, 77, 105, 53, 72, 82, 108, 103, 117, 77, 106, 65, 105, 76,
-            67, 74, 74, 98, 110, 78, 48, 99, 110, 86, 106, 100, 71, 86, 107, 81, 87, 49, 118, 100,
-            87, 53, 48, 73, 106, 112, 55, 73, 107, 70, 116, 98, 51, 86, 117, 100, 67, 73, 54, 73,
-            106, 69, 50, 78, 83, 52, 52, 79, 67, 73, 115, 73, 107, 78, 49, 99, 110, 74, 108, 98,
-            109, 78, 53, 73, 106, 111, 105, 82, 48, 74, 81, 73, 110, 48, 115, 73, 107, 78, 121, 90,
-            87, 82, 112, 100, 71, 57, 121, 81, 87, 78, 106, 98, 51, 86, 117, 100, 67, 73, 54, 101,
-            121, 74, 84, 89, 50, 104, 108, 98, 87, 86, 79, 89, 87, 49, 108, 73, 106, 111, 105, 86,
-            85, 115, 117, 84, 48, 74, 74, 82, 83, 53, 84, 98, 51, 74, 48, 81, 50, 57, 107, 90, 85,
-            70, 106, 89, 50, 57, 49, 98, 110, 82, 79, 100, 87, 49, 105, 90, 88, 73, 105, 76, 67, 74,
-            74, 90, 71, 86, 117, 100, 71, 108, 109, 97, 87, 78, 104, 100, 71, 108, 118, 98, 105, 73,
-            54, 73, 106, 65, 52, 77, 68, 103, 119, 77, 68, 73, 120, 77, 122, 73, 49, 78, 106, 107,
-            52, 73, 105, 119, 105, 84, 109, 70, 116, 90, 83, 73, 54, 73, 107, 70, 68, 84, 85, 85,
-            103, 83, 87, 53, 106, 73, 105, 119, 105, 85, 50, 86, 106, 98, 50, 53, 107, 89, 88, 74,
-            53, 83, 87, 82, 108, 98, 110, 82, 112, 90, 109, 108, 106, 89, 88, 82, 112, 98, 50, 52,
-            105, 79, 105, 73, 119, 77, 68, 65, 121, 73, 110, 48, 115, 73, 108, 74, 108, 98, 87, 108,
-            48, 100, 71, 70, 117, 89, 50, 86, 74, 98, 109, 90, 118, 99, 109, 49, 104, 100, 71, 108,
-            118, 98, 105, 73, 54, 101, 121, 74, 83, 90, 87, 90, 108, 99, 109, 86, 117, 89, 50, 85,
-            105, 79, 105, 74, 71, 85, 107, 86, 84, 81, 48, 56, 116, 77, 84, 65, 120, 73, 105, 119,
-            105, 86, 87, 53, 122, 100, 72, 74, 49, 89, 51, 82, 49, 99, 109, 86, 107, 73, 106, 111,
-            105, 83, 87, 53, 48, 90, 88, 74, 117, 89, 87, 119, 103, 98, 51, 66, 122, 73, 71, 78,
-            118, 90, 71, 85, 103, 78, 84, 69, 121, 77, 68, 69, 119, 77, 83, 74, 57, 102, 88, 48,
-            115, 73, 108, 74, 112, 99, 50, 115, 105, 79, 110, 115, 105, 85, 71, 70, 53, 98, 87, 86,
-            117, 100, 69, 78, 118, 98, 110, 82, 108, 101, 72, 82, 68, 98, 50, 82, 108, 73, 106, 111,
-            105, 82, 87, 78, 118, 98, 87, 49, 108, 99, 109, 78, 108, 82, 50, 57, 118, 90, 72, 77,
-            105, 76, 67, 74, 78, 90, 88, 74, 106, 97, 71, 70, 117, 100, 69, 78, 104, 100, 71, 86,
-            110, 98, 51, 74, 53, 81, 50, 57, 107, 90, 83, 73, 54, 73, 106, 85, 53, 78, 106, 99, 105,
-            76, 67, 74, 78, 90, 88, 74, 106, 97, 71, 70, 117, 100, 69, 78, 49, 99, 51, 82, 118, 98,
-            87, 86, 121, 83, 87, 82, 108, 98, 110, 82, 112, 90, 109, 108, 106, 89, 88, 82, 112, 98,
-            50, 52, 105, 79, 105, 73, 119, 78, 84, 77, 49, 79, 84, 103, 50, 78, 84, 77, 121, 78, 84,
-            81, 105, 76, 67, 74, 69, 90, 87, 120, 112, 100, 109, 86, 121, 101, 85, 70, 107, 90, 72,
-            74, 108, 99, 51, 77, 105, 79, 110, 115, 105, 81, 87, 82, 107, 99, 109, 86, 122, 99, 48,
-            120, 112, 98, 109, 85, 105, 79, 108, 115, 105, 82, 109, 120, 104, 100, 67, 65, 51, 73,
-            105, 119, 105, 81, 87, 78, 104, 89, 50, 108, 104, 73, 69, 120, 118, 90, 71, 100, 108,
-            73, 108, 48, 115, 73, 108, 78, 48, 99, 109, 86, 108, 100, 69, 53, 104, 98, 87, 85, 105,
-            79, 105, 74, 66, 89, 50, 70, 106, 97, 87, 69, 103, 81, 88, 90, 108, 98, 110, 86, 108,
-            73, 105, 119, 105, 81, 110, 86, 112, 98, 71, 82, 112, 98, 109, 100, 79, 100, 87, 49,
-            105, 90, 88, 73, 105, 79, 105, 73, 121, 78, 121, 73, 115, 73, 108, 66, 118, 99, 51, 82,
-            68, 98, 50, 82, 108, 73, 106, 111, 105, 82, 49, 85, 122, 77, 83, 65, 121, 87, 108, 111,
-            105, 76, 67, 74, 85, 98, 51, 100, 117, 84, 109, 70, 116, 90, 83, 73, 54, 73, 108, 78,
-            119, 89, 88, 74, 122, 97, 71, 57, 115, 100, 67, 73, 115, 73, 107, 78, 118, 100, 87, 53,
-            48, 101, 86, 78, 49, 89, 107, 82, 112, 100, 109, 108, 122, 97, 87, 57, 117, 73, 106,
-            112, 98, 73, 108, 100, 108, 99, 51, 78, 108, 101, 67, 74, 100, 76, 67, 74, 68, 98, 51,
-            86, 117, 100, 72, 74, 53, 73, 106, 111, 105, 86, 85, 115, 105, 102, 88, 48, 115, 73,
-            107, 120, 112, 98, 109, 116, 122, 73, 106, 112, 55, 73, 108, 78, 108, 98, 71, 89, 105,
-            79, 105, 74, 111, 100, 72, 82, 119, 99, 122, 111, 118, 76, 50, 70, 119, 97, 83, 53, 104,
-            98, 72, 66, 111, 89, 87, 74, 104, 98, 109, 115, 117, 89, 50, 57, 116, 76, 50, 57, 119,
-            90, 87, 52, 116, 89, 109, 70, 117, 97, 50, 108, 117, 90, 121, 57, 50, 77, 121, 52, 120,
-            76, 51, 66, 112, 99, 51, 65, 118, 90, 71, 57, 116, 90, 88, 78, 48, 97, 87, 77, 116, 99,
-            71, 70, 53, 98, 87, 86, 117, 100, 67, 49, 106, 98, 50, 53, 122, 90, 87, 53, 48, 99, 121,
-            56, 49, 79, 68, 107, 121, 77, 121, 74, 57, 76, 67, 74, 78, 90, 88, 82, 104, 73, 106,
-            112, 55, 102, 88, 48, 61, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-            0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ],
-        len: 1332,
-    };
+fn test_main() {
+    // pubkey from revolut (also extracted from verifyRevolutJwt.js)
     let modulus_limbs = [
-        0x69c710b3f052ddef4b35ac4b0eb371,
-        0x1b43f44f6c1c687421eb7bc2294895,
-        0x10b43a09f6b35feded9c42dc850f1c,
-        0xa98f59ad2f2556a0709e3ae8314ced,
-        0x4862b5c7ea841036aeee53229b6039,
-        0x360dd67e1ea74617bc5a034dbc6ad2,
-        0x7d12ec253bb5b05cd53bf3951d763c,
-        0xd30c3f3d5addcfaf4eb3d291c27351,
-        0x469fbad5d1eb848897bcb103977194,
-        0xb897f4ef6b24ef7c1cabe8a7e9e30d,
-        0x54700ac5f873cd9575d2fece36b95a,
-        0xf37412d844147991125935e1431d45,
-        0x74d362b53e1b6a79b53f571a750c24,
-        0xfa97f36a3710a510f6e755cf4f9a94,
-        0xd542c40f08890c54987cd2b694e4fd,
-        0x2e8e3253ac7974e647330458520f0,
-        0xcf53138d2cfb91c73012439b0de09e,
-        0xd5,
-    ];
-    let redc_params_limbs = [
-        0x72582da9d15b312eaad9c77d2a60ac,
-        0x80151b68e13029021f4c296a32b18d,
-        0x491f5476f5b2bbe38bf97775a04162,
-        0xe5da34eb74932c699478ce30680c8b,
-        0x5d67245a7e40fe68497f92e58e0e26,
-        0xed3841e9f0afacda070bbe45cd817e,
-        0x59337027b088ab11efacf5acc18f69,
-        0x684b051897f2fa9a51131c8c246b02,
-        0x3a301dec273c84d2d7bcb6706952cc,
-        0x794b2280e71ebb1b85c62707f5bdd0,
-        0xaf41c71360063cc2bdb004b40021b3,
-        0x7d72fc4c8161aadd1767c6ef58cd66,
-        0xf6b7da4c6edce27476a62b704fc946,
-        0xbcf039c419d6dc27fa67bf7466ecb0,
-        0x9926ee141ea01406655ef837d6cc63,
-        0x9e660cfb050e193dfe230d8e8c204f,
-        0x3ec993f290f5281be5454eabb32912,
-        0x1328,
-    ];
-    let signature = [
-        0x44e58c2053b73b525ed6fb6e892511,
-        0x3b47fb49cc11213e2fd99d2179e383,
-        0xc1e0997bb4845f0a4f033d3cbbff98,
-        0x310c7a4b9bad9f0a8613e1c0f3dd4a,
-        0x2f14d9c6a83bf96deed497e0d36aa5,
-        0x48aed834df0bba4c6c928db25e7ce3,
-        0xf5e2efda6da620bf0bbe50a088614b,
-        0xa40c3fe2d965310c8eac442ec491,
-        0x67edfd09a7e2d8e9d2d73ce919f091,
-        0x3ebf79487d76de48d979ccad567a0a,
-        0x0e80e46d5f1cdf8ede3bb167d74356,
-        0x9e2b090970e2ec3f44fcf708c96652,
-        0x218fea67626fdac226f569ff106cc2,
-        0x7a9630e9f76c744b48d9915de51e5e,
-        0x0dc3546e82fcd9803a1df2db6baccc,
-        0xeda26cf4b08f0847f3e9550a0ae115,
-        0xea7fc867626fb31fbd5d0134dfe437,
-        0xac,
+        0x83e879145bffccbe4d783abeca8999,
+        0xb7d9868f5b915b43f6c6a8193a1a4f,
+        0x67f95badedef107f0998ab3d52961e,
+        0x7dcc9780ac8d71c6b49bbfeca25f0,
+        0xf9fdced289a3d4f62830681be65b50,
+        0x986aa8fe98888e9f609af97515b036,
+        0xd494bc65f4608849a6ed8cf5cb82ed,
+        0x18ca508b8353e676387d22667e4adb,
+        0x9d3fcb816b4763099ccbb7416a7ad,
+        0xcfd89fee1ffcfa5f2243c92e3908b7,
+        0xcaf320fbb34158238b41042f9c6386,
+        0xb3df0cd5dee269ecec61b342880c59,
+        0x2134236dc67b59df001cac48181625,
+        0x536d424ce3dcaf2b3c15eba3ceb98,
+        0x7c6532647de2f025c4245c4a816ea9,
+        0x1ca6b6ac38706f61dd460c53293c88,
+        0x812b9256f612815edb22ec614a6c89,
+        0xc9,
     ];
 
-    let sort_code_value: [u8; SORT_CODE_VALUE_LENGTH] = comptime { "08080021325698".as_bytes() };
+    let redc_limbs = [
+        0x9ec08341171d384b92ed35848dac43,
+        0xaa5e7059598102ad1d99f33e533781,
+        0x894978a6e54a780efd6c579b74dd3f,
+        0x9531219036eb346dc4d2f142d9aeb3,
+        0x2d67220edac65500daea360896b937,
+        0x72393de3ce76a185b8d5fe4efeb301,
+        0x2e5a676dc2d3d971ead0a1a8127ff1,
+        0xbb92e11f4b88fb1f478a8e5fcc8a63,
+        0x978205931de77dc276cbffcfa9ab06,
+        0x3f0074f27a70de9b87b38923c5d26f,
+        0x315d3964500ad7da70267bebb13aed,
+        0xee04558c06aced97c3375cb93ae624,
+        0xcaf9c90ec5317baf27dabd3f3a6018,
+        0x453a832dd0cf10c2e7669123ffdabe,
+        0xc6c46372e3eda40f2582e2e9902867,
+        0xcdb6b9ecb85a01524cbe4cee82a2c2,
+        0xbbaa5920d526e092f29b41b1c629e1,
+        0x1453,
+    ];
 
-    let amount_bytes = comptime { "165.88" }.as_bytes();
-    let mut amount_padded: [u8; MAX_AMOUNT_VALUE_LENGTH] = [0; MAX_AMOUNT_VALUE_LENGTH];
-    for i in 0..amount_bytes.len() {
-        amount_padded[i] = amount_bytes[i];
+    // signature from verifyRevolutJwt.js
+    let signature_limbs = [
+        0x2e3f7f3a3b7d89cbf680adcee4f039,
+        0xcca286445a216e1c110416099710f3,
+        0x0684d04d7773fbff2223360e314f47,
+        0x1342e7d3f7cadd18ba5f0ed57b1e54,
+        0xe5347fc80630780900cffe3d20cb7d,
+        0xda578cadd719f2a38f505d54c46203,
+        0x4a729fdd97383a0e32b5e8f671c833,
+        0x810ea2ce9ace9bd072bd3b221c9b62,
+        0xc565d6bff72c8501a729ecab2aee3b,
+        0xe042b627c4e6b4cc6ab4ca0ababaaa,
+        0x8e707750c71a4f9f0b9d9389b61826,
+        0x850297f956c58dafb6bf4f7bb049fa,
+        0x32c51e7454edae060725c509d9a48c,
+        0xbe2f1df6227e67dc61e6ab82bc501f,
+        0xea17c90cc7053bbb94ddfac6b1a405,
+        0x6c6eaada9c24dfa1a476c3718f6735,
+        0x0134b376c64ba2a79a086061573792,
+        0x22,
+    ];
+
+    // Revolut JWT
+    let jwt = comptime { "eyJraWQiOiJvSjQwLUcxVklxbUU2eUhuYnA4S1E1Qmk2bXciLCJhbGciOiJQUzI1NiIsImNyaXQiOlsiYjY0IiwiaHR0cDovL29wZW5iYW5raW5nLm9yZy51ay9pYXQiLCJodHRwOi8vb3BlbmJhbmtpbmcub3JnLnVrL2lzcyIsImh0dHA6Ly9vcGVuYmFua2luZy5vcmcudWsvdGFuIl0sImI2NCI6ZmFsc2UsImh0dHA6Ly9vcGVuYmFua2luZy5vcmcudWsvdGFuIjoib3BlbmJhbmtpbmcub3JnLnVrIiwiaHR0cDovL29wZW5iYW5raW5nLm9yZy51ay9pc3MiOiIwMDE1ODAwMDAxMDNVQXZBQU0iLCJodHRwOi8vb3BlbmJhbmtpbmcub3JnLnVrL2lhdCI6MTczNTgyNTE5OX0.{\"Data\":{\"DomesticPaymentId\":\"6776972f-e9af-ad6a-8cdd-ff2099bd2475\",\"Status\":\"Pending\",\"StatusUpdateDateTime\":\"2025-01-02T13:39:59.455059Z\",\"CreationDateTime\":\"2025-01-02T13:39:59.455059Z\",\"ConsentId\":\"6d2e1641-e486-4a3a-936b-065628f2a926\",\"Initiation\":{\"RemittanceInformation\":{\"Unstructured\":\"Shipment fee\"},\"DebtorAccount\":{\"SchemeName\":\"UK.OBIE.SortCodeAccountNumber\",\"Identification\":\"04290953215338\",\"Name\":\"Acme Corporation\"},\"EndToEndIdentification\":\"E2E123\",\"InstructionIdentification\":\"ID412\",\"CreditorAccount\":{\"Name\":\"Receiver Co.\",\"SchemeName\":\"UK.OBIE.SortCodeAccountNumber\",\"Identification\":\"11223321325698\"},\"InstructedAmount\":{\"Amount\":\"1.00\",\"Currency\":\"GBP\"}}},\"Links\":{\"Self\":\"https://sandbox-oba.revolut.com/domestic-payments/6776972f-e9af-ad6a-8cdd-ff2099bd2475\"},\"Meta\":{\"TotalPages\":1}}".as_bytes() };
+
+    // extract beginning of JWT to create partial hash start. Smallest value divisble by block size (64) is
+    // 384 in this case 
+    let mut partial_hash_start_preimage: [u8; TEST_PH_START_PREIMAGE_LENGTH] = [0; TEST_PH_START_PREIMAGE_LENGTH];
+    for i in 0..partial_hash_start_preimage.len() {
+        partial_hash_start_preimage[i] = jwt[i];
     }
-    let amount_value: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH> =
-        BoundedVec { storage: amount_padded, len: amount_bytes.len() };
 
-    // logic
-    let res: [Field; 3] = main(
-        data,
+    // partial hash start
+    let partial_hash_start = partial_sha256_var_start::<TEST_PH_START_PREIMAGE_LENGTH>(partial_hash_start_preimage);
+
+    let mut payload: [u8; MAX_PAYLOAD_LENGTH] = [32; MAX_PAYLOAD_LENGTH];
+    // extract rest of payload to pass in circuit
+    for i in 0..TEST_JWT_LENGTH - TEST_PH_START_PREIMAGE_LENGTH {
+        payload[i] = jwt[i + TEST_PH_START_PREIMAGE_LENGTH];
+    }
+
+    let payload_vec: BoundedVec<u8, MAX_PAYLOAD_LENGTH> = BoundedVec { storage: payload, len: TEST_PAYLOAD_LENGTH };
+
+    let amount = comptime { "1.00".as_bytes() };
+    let currency_code = comptime { "GBP".as_bytes() };
+    let sort_code = comptime { "04290953215338".as_bytes() };
+
+    let mut amount_padded: [u8; MAX_AMOUNT_VALUE_LENGTH] = [0; MAX_AMOUNT_VALUE_LENGTH];
+    for i in 0..amount.len() {
+        amount_padded[i] = amount[i];
+    }
+    let amount_value: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH> = BoundedVec { storage: amount_padded, len: amount.len() };
+
+    main(
+        signature_limbs,
         modulus_limbs,
-        redc_params_limbs,
-        signature,
-        sort_code_value,
+        redc_limbs,
+        partial_hash_start,
+        TEST_HEADER_DELIMITER_INDEX_LENGTH,
+        payload_vec,
         amount_value,
+        currency_code,
+        sort_code
     );
-    let amount = res[0];
-    let signing_key_hash = res[1];
-    let escrow_commitment = res[2];
-
-    println("Amount");
-    println(amount);
-    println("Signing Pubkey Hash");
-    println(signing_key_hash);
-    println("Escrow commitment");
-    println(escrow_commitment);
 }
-
-// #[test(should_fail)]
-// fn should_fail() {
-//     let data: BoundedVec<u8, MAX_JWT_SIZE> = BoundedVec {
-//         storage: [101, 121, 74, 69, 89, 88, 82, 104, 73, 106, 112, 55, 73, 107, 78, 118, 98, 110, 78, 108, 98, 110, 82, 74, 90, 67, 73, 54, 73, 106, 85, 52, 79, 84, 73, 122, 73, 105, 119, 105, 85, 51, 82, 104, 100, 72, 86, 122, 73, 106, 111, 105, 81, 88, 100, 104, 97, 88, 82, 112, 98, 109, 100, 66, 100, 88, 82, 111, 98, 51, 74, 112, 99, 50, 70, 48, 97, 87, 57, 117, 73, 105, 119, 105, 81, 51, 74, 108, 89, 88, 82, 112, 98, 50, 53, 69, 89, 88, 82, 108, 86, 71, 108, 116, 90, 83, 73, 54, 73, 106, 73, 119, 77, 84, 99, 116, 77, 68, 89, 116, 77, 68, 86, 85, 77, 84, 85, 54, 77, 84, 85, 54, 77, 84, 77, 114, 77, 68, 65, 54, 77, 68, 65, 105, 76, 67, 74, 84, 100, 71, 70, 48, 100, 88, 78, 86, 99, 71, 82, 104, 100, 71, 86, 69, 89, 88, 82, 108, 86, 71, 108, 116, 90, 83, 73, 54, 73, 106, 73, 119, 77, 84, 99, 116, 77, 68, 89, 116, 77, 68, 86, 85, 77, 84, 85, 54, 77, 84, 85, 54, 77, 84, 77, 114, 77, 68, 65, 54, 77, 68, 65, 105, 76, 67, 74, 74, 98, 109, 108, 48, 97, 87, 70, 48, 97, 87, 57, 117, 73, 106, 112, 55, 73, 107, 108, 117, 99, 51, 82, 121, 100, 87, 78, 48, 97, 87, 57, 117, 83, 87, 82, 108, 98, 110, 82, 112, 90, 109, 108, 106, 89, 88, 82, 112, 98, 50, 52, 105, 79, 105, 74, 66, 81, 48, 49, 70, 78, 68, 69, 121, 73, 105, 119, 105, 82, 87, 53, 107, 86, 71, 57, 70, 98, 109, 82, 74, 90, 71, 86, 117, 100, 71, 108, 109, 97, 87, 78, 104, 100, 71, 108, 118, 98, 105, 73, 54, 73, 107, 90, 83, 82, 86, 78, 68, 84, 121, 52, 121, 77, 84, 77, 119, 77, 105, 53, 72, 82, 108, 103, 117, 77, 106, 65, 105, 76, 67, 74, 74, 98, 110, 78, 48, 99, 110, 86, 106, 100, 71, 86, 107, 81, 87, 49, 118, 100, 87, 53, 48, 73, 106, 112, 55, 73, 107, 70, 116, 98, 51, 86, 117, 100, 67, 73, 54, 73, 106, 69, 50, 78, 83, 52, 52, 79, 67, 73, 115, 73, 107, 78, 49, 99, 110, 74, 108, 98, 109, 78, 53, 73, 106, 111, 105, 82, 48, 74, 81, 73, 110, 48, 115, 73, 107, 78, 121, 90, 87, 82, 112, 100, 71, 57, 121, 81, 87, 78, 106, 98, 51, 86, 117, 100, 67, 73, 54, 101, 121, 74, 84, 89, 50, 104, 108, 98, 87, 86, 79, 89, 87, 49, 108, 73, 106, 111, 105, 86, 85, 115, 117, 84, 48, 74, 74, 82, 83, 53, 84, 98, 51, 74, 48, 81, 50, 57, 107, 90, 85, 70, 106, 89, 50, 57, 49, 98, 110, 82, 79, 100, 87, 49, 105, 90, 88, 73, 105, 76, 67, 74, 74, 90, 71, 86, 117, 100, 71, 108, 109, 97, 87, 78, 104, 100, 71, 108, 118, 98, 105, 73, 54, 73, 106, 65, 52, 77, 68, 103, 119, 77, 68, 73, 120, 77, 122, 73, 49, 78, 106, 107, 52, 73, 105, 119, 105, 84, 109, 70, 116, 90, 83, 73, 54, 73, 107, 70, 68, 84, 85, 85, 103, 83, 87, 53, 106, 73, 105, 119, 105, 85, 50, 86, 106, 98, 50, 53, 107, 89, 88, 74, 53, 83, 87, 82, 108, 98, 110, 82, 112, 90, 109, 108, 106, 89, 88, 82, 112, 98, 50, 52, 105, 79, 105, 73, 119, 77, 68, 65, 121, 73, 110, 48, 115, 73, 108, 74, 108, 98, 87, 108, 48, 100, 71, 70, 117, 89, 50, 86, 74, 98, 109, 90, 118, 99, 109, 49, 104, 100, 71, 108, 118, 98, 105, 73, 54, 101, 121, 74, 83, 90, 87, 90, 108, 99, 109, 86, 117, 89, 50, 85, 105, 79, 105, 74, 71, 85, 107, 86, 84, 81, 48, 56, 116, 77, 84, 65, 120, 73, 105, 119, 105, 86, 87, 53, 122, 100, 72, 74, 49, 89, 51, 82, 49, 99, 109, 86, 107, 73, 106, 111, 105, 83, 87, 53, 48, 90, 88, 74, 117, 89, 87, 119, 103, 98, 51, 66, 122, 73, 71, 78, 118, 90, 71, 85, 103, 78, 84, 69, 121, 77, 68, 69, 119, 77, 83, 74, 57, 102, 88, 48, 115, 73, 108, 74, 112, 99, 50, 115, 105, 79, 110, 115, 105, 85, 71, 70, 53, 98, 87, 86, 117, 100, 69, 78, 118, 98, 110, 82, 108, 101, 72, 82, 68, 98, 50, 82, 108, 73, 106, 111, 105, 82, 87, 78, 118, 98, 87, 49, 108, 99, 109, 78, 108, 82, 50, 57, 118, 90, 72, 77, 105, 76, 67, 74, 78, 90, 88, 74, 106, 97, 71, 70, 117, 100, 69, 78, 104, 100, 71, 86, 110, 98, 51, 74, 53, 81, 50, 57, 107, 90, 83, 73, 54, 73, 106, 85, 53, 78, 106, 99, 105, 76, 67, 74, 78, 90, 88, 74, 106, 97, 71, 70, 117, 100, 69, 78, 49, 99, 51, 82, 118, 98, 87, 86, 121, 83, 87, 82, 108, 98, 110, 82, 112, 90, 109, 108, 106, 89, 88, 82, 112, 98, 50, 52, 105, 79, 105, 73, 119, 78, 84, 77, 49, 79, 84, 103, 50, 78, 84, 77, 121, 78, 84, 81, 105, 76, 67, 74, 69, 90, 87, 120, 112, 100, 109, 86, 121, 101, 85, 70, 107, 90, 72, 74, 108, 99, 51, 77, 105, 79, 110, 115, 105, 81, 87, 82, 107, 99, 109, 86, 122, 99, 48, 120, 112, 98, 109, 85, 105, 79, 108, 115, 105, 82, 109, 120, 104, 100, 67, 65, 51, 73, 105, 119, 105, 81, 87, 78, 104, 89, 50, 108, 104, 73, 69, 120, 118, 90, 71, 100, 108, 73, 108, 48, 115, 73, 108, 78, 48, 99, 109, 86, 108, 100, 69, 53, 104, 98, 87, 85, 105, 79, 105, 74, 66, 89, 50, 70, 106, 97, 87, 69, 103, 81, 88, 90, 108, 98, 110, 86, 108, 73, 105, 119, 105, 81, 110, 86, 112, 98, 71, 82, 112, 98, 109, 100, 79, 100, 87, 49, 105, 90, 88, 73, 105, 79, 105, 73, 121, 78, 121, 73, 115, 73, 108, 66, 118, 99, 51, 82, 68, 98, 50, 82, 108, 73, 106, 111, 105, 82, 49, 85, 122, 77, 83, 65, 121, 87, 108, 111, 105, 76, 67, 74, 85, 98, 51, 100, 117, 84, 109, 70, 116, 90, 83, 73, 54, 73, 108, 78, 119, 89, 88, 74, 122, 97, 71, 57, 115, 100, 67, 73, 115, 73, 107, 78, 118, 100, 87, 53, 48, 101, 86, 78, 49, 89, 107, 82, 112, 100, 109, 108, 122, 97, 87, 57, 117, 73, 106, 112, 98, 73, 108, 100, 108, 99, 51, 78, 108, 101, 67, 74, 100, 76, 67, 74, 68, 98, 51, 86, 117, 100, 72, 74, 53, 73, 106, 111, 105, 86, 85, 115, 105, 102, 88, 48, 115, 73, 107, 120, 112, 98, 109, 116, 122, 73, 106, 112, 55, 73, 108, 78, 108, 98, 71, 89, 105, 79, 105, 74, 111, 100, 72, 82, 119, 99, 122, 111, 118, 76, 50, 70, 119, 97, 83, 53, 104, 98, 72, 66, 111, 89, 87, 74, 104, 98, 109, 115, 117, 89, 50, 57, 116, 76, 50, 57, 119, 90, 87, 52, 116, 89, 109, 70, 117, 97, 50, 108, 117, 90, 121, 57, 50, 77, 121, 52, 120, 76, 51, 66, 112, 99, 51, 65, 118, 90, 71, 57, 116, 90, 88, 78, 48, 97, 87, 77, 116, 99, 71, 70, 53, 98, 87, 86, 117, 100, 67, 49, 106, 98, 50, 53, 122, 90, 87, 53, 48, 99, 121, 56, 49, 79, 68, 107, 121, 77, 121, 74, 57, 76, 67, 74, 78, 90, 88, 82, 104, 73, 106, 112, 55, 102, 88, 48, 61, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-//         len: 1332
-//     };
-//     let modulus_limbs = [0x69c710b3f052ddef4b35ac4b0eb371, 0x1b43f44f6c1c687421eb7bc2294895, 0x10b43a09f6b35feded9c42dc850f1c, 0xa98f59ad2f2556a0709e3ae8314ced, 0x4862b5c7ea841036aeee53229b6039, 0x360dd67e1ea74617bc5a034dbc6ad2, 0x7d12ec253bb5b05cd53bf3951d763c, 0xd30c3f3d5addcfaf4eb3d291c27351, 0x469fbad5d1eb848897bcb103977194, 0xb897f4ef6b24ef7c1cabe8a7e9e30d, 0x54700ac5f873cd9575d2fece36b95a, 0xf37412d844147991125935e1431d45, 0x74d362b53e1b6a79b53f571a750c24, 0xfa97f36a3710a510f6e755cf4f9a94, 0xd542c40f08890c54987cd2b694e4fd, 0x2e8e3253ac7974e647330458520f0, 0xcf53138d2cfb91c73012439b0de09e, 0xd5];
-//     let redc_params_limbs = [0x72582da9d15b312eaad9c77d2a60ac, 0x80151b68e13029021f4c296a32b18d, 0x491f5476f5b2bbe38bf97775a04162, 0xe5da34eb74932c699478ce30680c8b, 0x5d67245a7e40fe68497f92e58e0e26, 0xed3841e9f0afacda070bbe45cd817e, 0x59337027b088ab11efacf5acc18f69, 0x684b051897f2fa9a51131c8c246b02, 0x3a301dec273c84d2d7bcb6706952cc, 0x794b2280e71ebb1b85c62707f5bdd0, 0xaf41c71360063cc2bdb004b40021b3, 0x7d72fc4c8161aadd1767c6ef58cd66, 0xf6b7da4c6edce27476a62b704fc946, 0xbcf039c419d6dc27fa67bf7466ecb0, 0x9926ee141ea01406655ef837d6cc63, 0x9e660cfb050e193dfe230d8e8c204f, 0x3ec993f290f5281be5454eabb32912, 0x1328];
-//     let signature = [0x44e58c2053b73b525ed6fb6e892511, 0x3b47fb49cc11213e2fd99d2179e383, 0xc1e0997bb4845f0a4f033d3cbbff98, 0x310c7a4b9bad9f0a8613e1c0f3dd4a, 0x2f14d9c6a83bf96deed497e0d36aa5, 0x48aed834df0bba4c6c928db25e7ce3, 0xf5e2efda6da620bf0bbe50a088614b, 0xa40c3fe2d965310c8eac442ec491, 0x67edfd09a7e2d8e9d2d73ce919f091, 0x3ebf79487d76de48d979ccad567a0a, 0x0e80e46d5f1cdf8ede3bb167d74356, 0x9e2b090970e2ec3f44fcf708c96652, 0x218fea67626fdac226f569ff106cc2, 0x7a9630e9f76c744b48d9915de51e5e, 0x0dc3546e82fcd9803a1df2db6baccc, 0xeda26cf4b08f0847f3e9550a0ae115, 0xea7fc867626fb31fbd5d0134dfe437, 0xac];
-
-//     let sort_code_value: [u8; SORT_CODE_VALUE_LENGTH] = comptime { "08080011325698".as_bytes() };
-//     // logic
-//     main(
-//         data,
-//         modulus_limbs,
-//         redc_params_limbs,
-//         signature,
-//         sort_code_value
-//     );
-// }

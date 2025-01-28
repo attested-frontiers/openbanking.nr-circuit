@@ -33,19 +33,22 @@ fn main(
     currency_code: [u8; CURRENCY_CODE_VALUE_LENGTH],
     sort_code: [u8; SORT_CODE_VALUE_LENGTH],
 ) {
+    // calculate length of payload already hashed by finding next lowest value divisible by 64 from delimiter index
     let partial_hash_start_preimage_length = header_delimiter_index - (header_delimiter_index % 64);
+
     let has_multiplicative_inverse = false;
     let params: BigNumParams<18, 2048> =
         BigNumParams::new(has_multiplicative_inverse, modulus_limbs, redc_limbs);
 
     let signature: RuntimeBigNum<18, 2048> = RuntimeBigNum::from_array(params, signature_limbs);
 
-    // hash jwt
+    // get complete hash of JWT by taking partial hash start and hashing the rest of the payload
     let hash: [u8; 32] = partial_sha256_var_end(partial_hash_start, payload.storage, payload.len() as u64, payload.len() as u64 + partial_hash_start_preimage_length as u64);
 
     // verify signature over payload
     assert(verify_sha256_pss(hash, signature, 2048));
 
+    // calculate remaning chars up to header / payload delimiter (".") that were not in the initial hash
     let carry_over_end_index = header_delimiter_index - partial_hash_start_preimage_length as u32;
 
     // if carry over is not 0 then set first index to whitespace (32)
@@ -55,7 +58,7 @@ fn main(
     }
     payload.set(0, byte);
 
-    // set values prior and up to delimiter (".") to whitespace so JSON parser does not get angry
+    // set values prior and up to delimiter to whitespace so JSON parser does not get angry
     for i in 1..64 {
         let mut index = i;
         if i > carry_over_end_index {
@@ -64,20 +67,19 @@ fn main(
         payload.set(index, 32); 
     }
 
-    // init JSON. Note: This may break with another payload and params will need tweaked
+    // init JSON. Note: Parameters may need to be adjusted depending on payload variability
     let json: JSON<1024, 34, 106, 29, 2> = JSON::parse_json(payload.storage);
 
+    // parse through nested JSON to extract values
     let data_obj = json.get_object(PAYLOAD_DATA_KEY).unwrap();
     let initiation_obj =  data_obj.get_object(INITIATION_KEY).unwrap();
-
-    // access nest json to retrieve sort code
     let debtor_acc_obj = initiation_obj.get_object(DEBTOR_ACCOUNT_KEY).unwrap();
+
+    // extract sort code
     let sort_code_result = debtor_acc_obj.get_string_unchecked::<SORT_CODE_KEY_LENGTH, SORT_CODE_VALUE_LENGTH>(SORT_CODE_KEY);
     assert(sort_code_result.storage == sort_code);
 
-    // access nested json to retrieve amount and currency code
-    let instructed_amt_obj = initiation_obj.get_object(INSTRUCTED_AMOUNT_KEY).unwrap();
-    
+    let instructed_amt_obj = initiation_obj.get_object(INSTRUCTED_AMOUNT_KEY).unwrap();    
     // extract amount
     let amount_result = instructed_amt_obj.get_string_unchecked::<AMOUNT_KEY_LENGTH, MAX_AMOUNT_VALUE_LENGTH>(AMOUNT_KEY);
     assert(amount_result.storage == amount.storage);
@@ -160,6 +162,7 @@ fn test_main() {
         0x22,
     ];
 
+    // Revolut JWT
     let jwt = comptime { "eyJraWQiOiJvSjQwLUcxVklxbUU2eUhuYnA4S1E1Qmk2bXciLCJhbGciOiJQUzI1NiIsImNyaXQiOlsiYjY0IiwiaHR0cDovL29wZW5iYW5raW5nLm9yZy51ay9pYXQiLCJodHRwOi8vb3BlbmJhbmtpbmcub3JnLnVrL2lzcyIsImh0dHA6Ly9vcGVuYmFua2luZy5vcmcudWsvdGFuIl0sImI2NCI6ZmFsc2UsImh0dHA6Ly9vcGVuYmFua2luZy5vcmcudWsvdGFuIjoib3BlbmJhbmtpbmcub3JnLnVrIiwiaHR0cDovL29wZW5iYW5raW5nLm9yZy51ay9pc3MiOiIwMDE1ODAwMDAxMDNVQXZBQU0iLCJodHRwOi8vb3BlbmJhbmtpbmcub3JnLnVrL2lhdCI6MTczNTgyNTE5OX0.{\"Data\":{\"DomesticPaymentId\":\"6776972f-e9af-ad6a-8cdd-ff2099bd2475\",\"Status\":\"Pending\",\"StatusUpdateDateTime\":\"2025-01-02T13:39:59.455059Z\",\"CreationDateTime\":\"2025-01-02T13:39:59.455059Z\",\"ConsentId\":\"6d2e1641-e486-4a3a-936b-065628f2a926\",\"Initiation\":{\"RemittanceInformation\":{\"Unstructured\":\"Shipment fee\"},\"DebtorAccount\":{\"SchemeName\":\"UK.OBIE.SortCodeAccountNumber\",\"Identification\":\"04290953215338\",\"Name\":\"Acme Corporation\"},\"EndToEndIdentification\":\"E2E123\",\"InstructionIdentification\":\"ID412\",\"CreditorAccount\":{\"Name\":\"Receiver Co.\",\"SchemeName\":\"UK.OBIE.SortCodeAccountNumber\",\"Identification\":\"11223321325698\"},\"InstructedAmount\":{\"Amount\":\"1.00\",\"Currency\":\"GBP\"}}},\"Links\":{\"Self\":\"https://sandbox-oba.revolut.com/domestic-payments/6776972f-e9af-ad6a-8cdd-ff2099bd2475\"},\"Meta\":{\"TotalPages\":1}}".as_bytes() };
 
     // extract beginning of JWT to create partial hash start. Smallest value divisble by block size (64) is

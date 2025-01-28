@@ -1,4 +1,4 @@
-# Noir circuit that verifies a PS256 signature over a Open Banking (currently only Revolut) payment JWT and extracts the sort code, currency code, and currency amount
+# Noir circuit that verifies a PS256 signature over an Open Banking (currently only Revolut) payment JWT and extracts the sort code, currency code, and currency amount
 
 ## Test circuit with Noir
 

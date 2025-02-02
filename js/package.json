@@ -4,6 +4,7 @@
   "main": "src/index.js",
   "license": "MIT",
   "dependencies": {
+    "@aztec/noir-contracts.js": "^0.72.1",
     "@mach-34/noir-bignum-paramgen": "^1.1.2",
     "@noir-lang/noir_js": "^1.0.0-beta.1",
     "@zk-email/helpers": "^6.3.2"

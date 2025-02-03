@@ -37,7 +37,7 @@ contract OpenbankEscrow {
 
     #[private]
     fn increase_provider_balance() {
-        // TODO: Must prove ownership of note
+        let token = storage.token_contract.read();
     }
 
     #[private]
@@ -86,9 +86,11 @@ contract OpenbankEscrow {
         let amount = bytes_to_num::<MAX_AMOUNT_VALUE_LENGTH>(amount);
 
         // transfer tokens to claimmants private balance
-        OpenbankEscrow::at(context.this_address())._claim_tokens(context.msg_sender(), amount).call(
-            &mut context,
-        );
+        // OpenbankEscrow::at(context.this_address())._claim_tokens(context.msg_sender(), amount).call(
+        //     &mut context,
+        // );
+        let token_contract = storage.token_contract.read();
+        Token::at(token_contract).transfer_to_private(context.msg_sender(), amount);
 
         // update public balance
         OpenbankEscrow::at(context.this_address())
@@ -96,12 +98,12 @@ contract OpenbankEscrow {
             .enqueue(&mut context);
     }
 
-    #[private]
-    #[internal]
-    fn _claim_tokens(claimmant: AztecAddress, amount: U128) {
-        let token_contract = storage.token_contract.read();
-        Token::at(token_contract).transfer_to_private(context.msg_sender(), amount);
-    }
+    // #[private]
+    // #[internal]
+    // fn _claim_tokens(claimmant: AztecAddress, amount: U128) {
+    //     let token_contract = storage.token_contract.read();
+    //     Token::at(token_contract).transfer_to_private(context.msg_sender(), amount);
+    // }
 
     #[public]
     #[internal]

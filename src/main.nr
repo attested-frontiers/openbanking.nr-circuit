@@ -122,6 +122,7 @@ fn test_main() {
 
     let amount = comptime { "1.00".as_bytes() };
     let currency_code = comptime { "GBP".as_bytes() };
+    let payment_id = comptime { "6776972f-e9af-ad6a-8cdd-ff2099bd2475".as_bytes() };
     let sort_code = comptime { "04290953215338".as_bytes() };
 
     let mut amount_padded: [u8; MAX_AMOUNT_VALUE_LENGTH] = [0; MAX_AMOUNT_VALUE_LENGTH];
@@ -131,5 +132,6 @@ fn test_main() {
 
     assert(amount_padded == res.amount.storage, "Expected amount not equal to extracted amount.");
     assert(currency_code == res.currency_code, "Expected currency code not equal to extracted currency code.");
+    assert(payment_id == res.payment_id, "Expected payment id not equal to extracted payment id.");
     assert(sort_code == res.sort_code, "Expected sort code not equal to extracted sort code.");
 }

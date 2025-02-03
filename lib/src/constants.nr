@@ -1,12 +1,13 @@
 use crate::revolut::{
-    CURRENCY_CODE_VALUE_LENGTH, MAX_AMOUNT_VALUE_LENGTH, MAX_PAYLOAD_LENGTH, SORT_CODE_VALUE_LENGTH,
+    CURRENCY_CODE_VALUE_LENGTH, MAX_AMOUNT_VALUE_LENGTH, MAX_PAYLOAD_LENGTH, PAYMENT_ID_LENGTH, SORT_CODE_VALUE_LENGTH,
 };
 use aztec::protocol_types::traits::Serialize;
 
 pub struct RevolutVerifierReturn {
     amount: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH>,
     currency_code: [u8; CURRENCY_CODE_VALUE_LENGTH],
-    sort_code: [u8; SORT_CODE_VALUE_LENGTH],
+    payment_id: [u8; PAYMENT_ID_LENGTH],
+    sort_code: [u8; SORT_CODE_VALUE_LENGTH]
 }
 
 pub struct RevolutVerifierParams {

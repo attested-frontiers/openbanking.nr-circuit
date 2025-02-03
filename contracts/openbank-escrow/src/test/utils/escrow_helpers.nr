@@ -1,4 +1,4 @@
-use crate::{OpenbankEscrow, types::ProviderBalance};
+use crate::{OpenbankEscrow, types::provider_balance::ProviderBalance};
 use authwit::cheatcodes as authwit_cheatcodes;
 use aztec::{
     oracle::{execution::{get_block_number, get_contract_address}, storage::storage_read},
@@ -25,7 +25,7 @@ pub unconstrained fn initial_deposit(
         U128::from_integer(0),
         0,
     );
-    
+
     authwit_cheatcodes::add_private_authwit_from_call_interface(
         provider,
         escrow_address,
@@ -34,7 +34,11 @@ pub unconstrained fn initial_deposit(
 
     env.impersonate(provider);
     let escrow = OpenbankEscrow::at(escrow_address);
-    let _ = escrow.init_provider_balance(sort_code, currency_code, U128::from_integer(0)).call(&mut env.private());
+    // TODO: Add actual randomness
+    let randomness: Field = 12345;
+    let _ = escrow
+        .init_provider_balance(sort_code, currency_code, U128::from_integer(0), randomness)
+        .call(&mut env.private());
     cheatcodes::advance_blocks_by(1);
 }
 

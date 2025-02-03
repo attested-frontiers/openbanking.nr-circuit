@@ -13,6 +13,8 @@ pub global SORT_CODE_KEY_LENGTH: u32 = 14;
 pub global SORT_CODE_VALUE_LENGTH: u32 = 14;
 pub global AMOUNT_KEY_LENGTH: u32 = 6;
 pub global MAX_AMOUNT_VALUE_LENGTH: u32 = 10;
+pub global PAYMENT_ID_KEY_LENGTH: u32 = 17;
+pub global PAYMENT_ID_LENGTH: u32 = 36;
 
 pub global AMOUNT_KEY: [u8; AMOUNT_KEY_LENGTH] = comptime { "Amount".as_bytes() };
 pub global CURRENCY_CODE_KEY: [u8; CURRENCY_CODE_KEY_LENGTH] = comptime { "Currency".as_bytes() };
@@ -20,6 +22,7 @@ pub global DEBTOR_ACCOUNT_KEY: [u8; 13] = comptime { "DebtorAccount".as_bytes() 
 pub global INITIATION_KEY: [u8; 10] = comptime { "Initiation".as_bytes() };
 pub global INSTRUCTED_AMOUNT_KEY: [u8; 16] = comptime { "InstructedAmount".as_bytes() };
 pub global PAYLOAD_DATA_KEY: [u8; 4] = comptime { "Data".as_bytes() };
+pub global PAYMENT_ID_KEY: [u8; PAYMENT_ID_KEY_LENGTH] = comptime { "DomesticPaymentId".as_bytes() };
 pub global SORT_CODE_KEY: [u8; SORT_CODE_KEY_LENGTH] = comptime { "Identification".as_bytes() };
 
 fn verify_revolut(params: RevolutVerifierParams) -> RevolutVerifierReturn {
@@ -82,6 +85,9 @@ fn verify_revolut(params: RevolutVerifierParams) -> RevolutVerifierReturn {
     let initiation_obj = data_obj.get_object(INITIATION_KEY).unwrap();
     let debtor_acc_obj = initiation_obj.get_object(DEBTOR_ACCOUNT_KEY).unwrap();
 
+    // extract payment id
+    let payment_id_result = data_obj.get_string_unchecked::<PAYMENT_ID_KEY_LENGTH, PAYMENT_ID_LENGTH>(PAYMENT_ID_KEY);
+
     // extract sort code
     let sort_code_result = debtor_acc_obj
         .get_string_unchecked::<SORT_CODE_KEY_LENGTH, SORT_CODE_VALUE_LENGTH>(SORT_CODE_KEY);
@@ -100,6 +106,7 @@ fn verify_revolut(params: RevolutVerifierParams) -> RevolutVerifierReturn {
     RevolutVerifierReturn {
         amount: amount_result,
         currency_code: currency_code_result.storage,
+        payment_id: payment_id_result.storage,
         sort_code: sort_code_result.storage,
     }
 }

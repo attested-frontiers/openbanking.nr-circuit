@@ -93,11 +93,10 @@ contract OpenbankEscrow {
     fn prove_payment_and_claim(revolut_params: RevolutVerifierParamsContract) {
         // prove openbanking payment
         let RevolutVerifierReturn {
-            amount,
-            currency_code: currency_code_bytes,
-            sort_code: sort_code_bytes,
-            payment_id
-        } = verify_revolut(revolut_params.marshal());
+    amount,
+    currency_code: currency_code_bytes,
+    sort_code: sort_code_bytes,
+    payment_id,} = verify_revolut(revolut_params.marshal());
 
         // recreate commitment
         let sort_code = field_from_bytes::<SORT_CODE_VALUE_LENGTH>(sort_code_bytes, false);
@@ -108,11 +107,6 @@ contract OpenbankEscrow {
         // parse amount from bounded vec
         let amount = bytes_to_num::<MAX_AMOUNT_VALUE_LENGTH>(amount);
 
-        // transfer tokens to claimant's private balance
-        OpenbankEscrow::at(context.this_address())
-            ._withdraw_tokens(context.msg_sender(), amount)
-            .call(&mut context);
-
         // hash payment id
         let payment_id_packed = pack_bytes::<PAYMENT_ID_LENGTH>(payment_id);
         let payment_hash = Poseidon2::hash(payment_id_packed, 2);
@@ -121,6 +115,11 @@ contract OpenbankEscrow {
         OpenbankEscrow::at(context.this_address())
             ._apply_payment(payment_hash, commitment, amount)
             .enqueue(&mut context);
+
+        // transfer tokens to claimant's private balance
+        OpenbankEscrow::at(context.this_address())
+            ._withdraw_tokens(context.msg_sender(), amount)
+            .call(&mut context);
     }
 
     #[private]
@@ -128,15 +127,15 @@ contract OpenbankEscrow {
         // TODO: Perform check that note exists
         let provider_account = storage.provider_account.get_note().note;
 
-        // transfer tokens to provider's private balance
-        OpenbankEscrow::at(context.this_address())
-            ._withdraw_tokens(context.msg_sender(), amount)
-            .call(&mut context);
-
         // decrement provider balance in escrow
         OpenbankEscrow::at(context.this_address())
             ._decrement_provider_balance(provider_account.commitment, amount)
             .enqueue(&mut context);
+
+        // transfer tokens to provider's private balance
+        OpenbankEscrow::at(context.this_address())
+            ._withdraw_tokens(context.msg_sender(), amount)
+            .call(&mut context);
     }
 
     #[public]
@@ -147,10 +146,10 @@ contract OpenbankEscrow {
         let current_block = context.block_number();
         assert(
             current_block as u32 >= provider_balance.withdrawable_at as u32,
-            "Cannot withdraw as block restriction period has not concluded.",
+            "Cannot withdraw in block restriction window.",
         );
         // assert withdrawable amount doesn't exceed balance
-        assert(amount <= provider_balance.balance, "Amount exceeds provider balance");
+        assert(amount <= provider_balance.balance, "Amount exceeds provider balance.");
 
         let updated_provider_balance = ProviderBalance {
             balance: provider_balance.balance - amount,
@@ -182,7 +181,7 @@ contract OpenbankEscrow {
     fn _init_provider_balance(commitment: Field, amount: U128) {
         // check that commitment doesn't already exist
         let provider_balance = storage.provider_balances.at(commitment).read();
-        assert(provider_balance.initialized == false, "Commitment already in use.");
+        assert(provider_balance.initialized == false, "Commitment has already been set.");
 
         // get current block number and set withdrawable block to be + 2
         let current_block = context.block_number();
@@ -200,10 +199,10 @@ contract OpenbankEscrow {
     fn _apply_payment(payment_hash: Field, commitment: Field, amount: U128) {
         // check that commitment exists
         let provider_balance = storage.provider_balances.at(commitment).read();
-        assert(provider_balance.initialized == true, "Commitment does not exist");
+        assert(provider_balance.initialized == true, "Commitment does not exist.");
 
         // check that amount does not exceed balance
-        assert(amount <= provider_balance.balance, "Amount exceeds balance");
+        assert(amount <= provider_balance.balance, "Payment amount exceeds provider balance.");
 
         // check that unique payment hasn't already been stored
         let spent_payment = storage.spent_payments.at(payment_hash).read();
@@ -221,9 +220,10 @@ contract OpenbankEscrow {
 
     #[private]
     #[internal]
-    fn _withdraw_tokens(claimant: AztecAddress, amount: U128) {
+    fn _withdraw_tokens(user: AztecAddress, amount: U128) {
         let token_contract = Token::at(storage.token_contract.read());
-        let hiding_point_slot = token_contract.prepare_private_balance_increase(claimant, claimant).call(&mut context);
+        let hiding_point_slot =
+            token_contract.prepare_private_balance_increase(user, user).call(&mut context);
         token_contract.finalize_transfer_to_private(amount, hiding_point_slot).enqueue(&mut context);
     }
 }

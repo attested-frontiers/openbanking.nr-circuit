@@ -1,4 +1,7 @@
-use dep::openbanking_verifier::constants::RevolutVerifierParamsContract;
+use dep::openbanking_verifier::{
+    constants::RevolutVerifierParamsContract,
+    revolut::{CURRENCY_CODE_VALUE_LENGTH, SORT_CODE_VALUE_LENGTH},
+};
 
 pub global REVOLUT_PAYMENT_PAYLOAD: RevolutVerifierParamsContract = RevolutVerifierParamsContract {
     modulus_limbs: [
@@ -119,3 +122,6 @@ pub global REVOLUT_PAYMENT_PAYLOAD: RevolutVerifierParamsContract = RevolutVerif
     ],
     payload_length: 858,
 };
+
+pub global CURRENCY_CODE: [u8; CURRENCY_CODE_VALUE_LENGTH] = comptime { "GBP".as_bytes() };
+pub global SORT_CODE: [u8; SORT_CODE_VALUE_LENGTH] = comptime { "04290953215338".as_bytes() };

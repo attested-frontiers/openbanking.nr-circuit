@@ -13,9 +13,9 @@ struct ProviderBalance {
 impl Packable<PROVIDER_BALANCE_SERIALIZED_LEN> for ProviderBalance {
     fn pack(provider_balance: ProviderBalance) -> [Field; PROVIDER_BALANCE_SERIALIZED_LEN] {
         [
-            provider_balance.withdrawable_at,
-            provider_balance.balance.to_integer(),
+            provider_balance.balance.to_field(),
             provider_balance.initialized as Field,
+            provider_balance.withdrawable_at,
         ]
     }
 

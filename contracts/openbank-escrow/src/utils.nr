@@ -3,7 +3,7 @@ use aztec::protocol_types::utils::field::field_from_bytes;
 pub fn bytes_to_num<let MAX_AMOUNT_VALUE_LENGTH: u32>(
     amount_value: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH>,
 ) -> U128 {
-    // convert amount from bytes to field and add 6 decimals
+    // convert amount from bytes to field and add 4 decimals for USDC decimal conversion
     let mut converted: Field = 0;
     let mut pow: Field = 10.pow_32(amount_value.len as Field - 2);
     for i in 0..MAX_AMOUNT_VALUE_LENGTH {

@@ -22,9 +22,9 @@ pub unconstrained fn setup() -> (&mut TestEnvironment, TestAccounts, TestContrac
 
     // create 4 accounts
     let accounts = TestAccounts {
-        admin: env.create_account(),
-        alice: env.create_account(),
-        bob: env.create_account(),
+        admin: env.create_account_contract(1),
+        alice: env.create_account_contract(2),
+        bob: env.create_account_contract(3),
     };
 
     // deploy the token contract

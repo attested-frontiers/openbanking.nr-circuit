@@ -11,8 +11,6 @@ use aztec::{
     },
 };
 
-global PROVIDER_NOTE_LENGTH: u32 = 3;
-
 #[note]
 pub struct ProviderNote {
     commitment: Field,

@@ -22,7 +22,7 @@ pub unconstrained fn initial_deposit(
     let transfer_to_public_call_interface = Token::at(token_address).transfer_to_public(
         provider,
         escrow_address,
-        U128::from_integer(0),
+        amount,
         0,
     );
 
@@ -32,23 +32,24 @@ pub unconstrained fn initial_deposit(
         transfer_to_public_call_interface,
     );
 
+
     env.impersonate(provider);
     let escrow = OpenbankEscrow::at(escrow_address);
     // TODO: Add actual randomness
     let randomness: Field = 12345;
     let _ = escrow
-        .init_provider_balance(sort_code, currency_code, U128::from_integer(0), randomness)
+        .init_provider_balance(sort_code, currency_code, amount, randomness)
         .call(&mut env.private());
     cheatcodes::advance_blocks_by(1);
 }
 
 pub unconstrained fn prove_payment(
     env: &mut TestEnvironment,
-    claimmant: AztecAddress,
+    claimant: AztecAddress,
     escrow_address: AztecAddress,
     payment_params: RevolutVerifierParamsContract,
 ) {
-    env.impersonate(claimmant);
+    env.impersonate(claimant);
     let escrow = OpenbankEscrow::at(escrow_address);
     let _ = escrow.prove_payment_and_claim(payment_params).call(&mut env.private());
     cheatcodes::advance_blocks_by(1);

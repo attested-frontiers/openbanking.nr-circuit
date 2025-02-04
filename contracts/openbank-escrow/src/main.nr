@@ -78,25 +78,26 @@ contract OpenbankEscrow {
             context.msg_sender(),
         ));
 
+        OpenbankEscrow::at(context.this_address())
+            ._init_provider_balance(commitment, amount)
+            .enqueue(&mut context);
+
         // transfer private token balance to public balance of escrow
         let token_contract = storage.token_contract.read();
         Token::at(token_contract)
             .transfer_to_public(context.msg_sender(), context.this_address(), amount, 0)
             .call(&mut context);
-
-        OpenbankEscrow::at(context.this_address())
-            ._init_provider_balance(commitment, amount)
-            .enqueue(&mut context);
     }
 
     #[private]
     fn prove_payment_and_claim(revolut_params: RevolutVerifierParamsContract) {
         // prove openbanking payment
         let RevolutVerifierReturn {
-    amount,
-    currency_code: currency_code_bytes,
-    sort_code: sort_code_bytes,
-    payment_id,} = verify_revolut(revolut_params.marshal());
+            amount,
+            currency_code: currency_code_bytes,
+            sort_code: sort_code_bytes,
+            payment_id
+        } = verify_revolut(revolut_params.marshal());
 
         // recreate commitment
         let sort_code = field_from_bytes::<SORT_CODE_VALUE_LENGTH>(sort_code_bytes, false);
@@ -107,7 +108,7 @@ contract OpenbankEscrow {
         // parse amount from bounded vec
         let amount = bytes_to_num::<MAX_AMOUNT_VALUE_LENGTH>(amount);
 
-        // transfer tokens to claimmant's private balance
+        // transfer tokens to claimant's private balance
         OpenbankEscrow::at(context.this_address())
             ._withdraw_tokens(context.msg_sender(), amount)
             .call(&mut context);
@@ -220,8 +221,9 @@ contract OpenbankEscrow {
 
     #[private]
     #[internal]
-    fn _withdraw_tokens(claimmant: AztecAddress, amount: U128) {
-        let token_contract = storage.token_contract.read();
-        Token::at(token_contract).transfer_to_private(context.msg_sender(), amount);
+    fn _withdraw_tokens(claimant: AztecAddress, amount: U128) {
+        let token_contract = Token::at(storage.token_contract.read());
+        let hiding_point_slot = token_contract.prepare_private_balance_increase(claimant, claimant).call(&mut context);
+        token_contract.finalize_transfer_to_private(amount, hiding_point_slot).enqueue(&mut context);
     }
 }

@@ -1,5 +1,5 @@
 [package]
-name = "openbank_escrow"
+name = "openbanking_escrow"
 type = "contract"
 authors = ["Mach 34"]
 

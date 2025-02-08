@@ -1,9 +1,8 @@
-use dep::openbanking_verifier::{
-    constants::RevolutVerifierParamsContract,
-    revolut::{CURRENCY_CODE_VALUE_LENGTH, SORT_CODE_VALUE_LENGTH},
+use dep::openbanking_verifier::constants::{
+    CURRENCY_CODE_VALUE_LENGTH, OpenbankingVerifierParamsContract, SORT_CODE_VALUE_LENGTH,
 };
 
-pub global REVOLUT_PAYMENT_PAYLOAD: RevolutVerifierParamsContract = RevolutVerifierParamsContract {
+pub global REVOLUT_PAYMENT_PAYLOAD: OpenbankingVerifierParamsContract = OpenbankingVerifierParamsContract {
     modulus_limbs: [
         0x83e879145bffccbe4d783abeca8999,
         0xb7d9868f5b915b43f6c6a8193a1a4f,

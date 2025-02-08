@@ -5,7 +5,7 @@ mod test;
 mod utils;
 
 #[aztec]
-contract OpenbankEscrow {
+contract OpenbankingEscrow {
 
     use crate::{
         types::{provider_balance::ProviderBalance, provider_note::ProviderNote},
@@ -20,11 +20,11 @@ contract OpenbankEscrow {
         protocol_types::utils::field::field_from_bytes,
     };
     use dep::openbanking_verifier::{
-        constants::{RevolutVerifierParamsContract, RevolutVerifierReturn},
-        revolut::{
-            CURRENCY_CODE_VALUE_LENGTH, MAX_AMOUNT_VALUE_LENGTH, PAYMENT_ID_LENGTH,
-            SORT_CODE_VALUE_LENGTH, verify_revolut,
+        constants::{
+            CURRENCY_CODE_VALUE_LENGTH, MAX_AMOUNT_VALUE_LENGTH, OpenbankingVerifierParamsContract,
+            OpenbankingVerifierReturn, PAYMENT_ID_LENGTH, SORT_CODE_VALUE_LENGTH,
         },
+        verify::verify_openbanking_payment,
     };
     use dep::std::hash::poseidon2::Poseidon2;
     use dep::token::Token;
@@ -54,7 +54,7 @@ contract OpenbankEscrow {
             .transfer_to_public(context.msg_sender(), context.this_address(), amount, 0)
             .call(&mut context);
 
-        OpenbankEscrow::at(context.this_address())
+        OpenbankingEscrow::at(context.this_address())
             ._increment_provider_balance(provider_account.commitment, amount)
             .enqueue(&mut context);
     }
@@ -78,7 +78,7 @@ contract OpenbankEscrow {
             context.msg_sender(),
         ));
 
-        OpenbankEscrow::at(context.this_address())
+        OpenbankingEscrow::at(context.this_address())
             ._init_provider_balance(commitment, amount)
             .enqueue(&mut context);
 
@@ -90,13 +90,13 @@ contract OpenbankEscrow {
     }
 
     #[private]
-    fn prove_payment_and_claim(revolut_params: RevolutVerifierParamsContract) {
+    fn prove_payment_and_claim(openbanking_params: OpenbankingVerifierParamsContract) {
         // prove openbanking payment
-        let RevolutVerifierReturn {
+        let OpenbankingVerifierReturn {
     amount,
     currency_code: currency_code_bytes,
     sort_code: sort_code_bytes,
-    payment_id,} = verify_revolut(revolut_params.marshal());
+    payment_id,} = verify_openbanking_payment(openbanking_params.marshal());
 
         // recreate commitment
         let sort_code = field_from_bytes::<SORT_CODE_VALUE_LENGTH>(sort_code_bytes, false);
@@ -112,12 +112,12 @@ contract OpenbankEscrow {
         let payment_hash = Poseidon2::hash(payment_id_packed, 2);
 
         // update public balance
-        OpenbankEscrow::at(context.this_address())
+        OpenbankingEscrow::at(context.this_address())
             ._apply_payment(payment_hash, commitment, amount)
             .enqueue(&mut context);
 
         // transfer tokens to claimant's private balance
-        OpenbankEscrow::at(context.this_address())
+        OpenbankingEscrow::at(context.this_address())
             ._withdraw_tokens(context.msg_sender(), amount)
             .call(&mut context);
     }
@@ -128,12 +128,12 @@ contract OpenbankEscrow {
         // let provider_account = storage.provider_account.get_note().note;
 
         // decrement provider balance in escrow
-        // OpenbankEscrow::at(context.this_address())
+        // OpenbankingEscrow::at(context.this_address())
         //     ._decrement_provider_balance(provider_account.commitment, amount)
         //     .enqueue(&mut context);
 
         // transfer tokens to provider's private balance
-        OpenbankEscrow::at(context.this_address())
+        OpenbankingEscrow::at(context.this_address())
             ._withdraw_tokens(context.msg_sender(), amount)
             .call(&mut context);
     }

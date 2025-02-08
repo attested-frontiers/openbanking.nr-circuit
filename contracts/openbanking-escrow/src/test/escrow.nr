@@ -11,7 +11,7 @@ use dep::aztec::{
     oracle::execution::get_block_number, protocol_types::utils::field::field_from_bytes,
     test::helpers::cheatcodes,
 };
-use dep::openbanking_verifier::revolut::{CURRENCY_CODE_VALUE_LENGTH, SORT_CODE_VALUE_LENGTH};
+use dep::openbanking_verifier::constants::{CURRENCY_CODE_VALUE_LENGTH, SORT_CODE_VALUE_LENGTH};
 use dep::std::hash::poseidon2::Poseidon2;
 
 // #[test]
@@ -362,7 +362,7 @@ unconstrained fn test_payment_amount_exceeds_provider_balance() {
 
 // #[test(should_fail_with = "Payment has already been spent.")]
 unconstrained fn test_double_spend() {
-     let (env, accounts, contracts) = setup();
+    let (env, accounts, contracts) = setup();
     let mint_amount = U128::from_integer(to_usdc_decimals(50));
 
     mint_private(
@@ -388,7 +388,6 @@ unconstrained fn test_double_spend() {
         mint_amount,
     );
 
-    
     prove_payment(env, accounts.bob, contracts.escrow, REVOLUT_PAYMENT_PAYLOAD);
 
     // attempt to prove same payment

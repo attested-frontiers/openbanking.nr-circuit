@@ -1,4 +1,4 @@
-use crate::OpenbankEscrow;
+use crate::OpenbankingEscrow;
 use aztec::{prelude::AztecAddress, test::helpers::{cheatcodes, test_environment::TestEnvironment}};
 use token::Token;
 
@@ -59,9 +59,9 @@ pub unconstrained fn deploy_escrow_contract(
     token_address: AztecAddress,
 ) -> AztecAddress {
     env.impersonate(deployer);
-    let escrow_init_call_iface = OpenbankEscrow::interface().constructor(token_address);
+    let escrow_init_call_iface = OpenbankingEscrow::interface().constructor(token_address);
     let escrow_contract = env
-        .deploy("./@openbank_escrow", "OpenbankEscrow")
+        .deploy("./@openbanking_escrow", "OpenbankingEscrow")
         .with_public_void_initializer(escrow_init_call_iface);
     cheatcodes::advance_blocks_by(1);
     escrow_contract.to_address()

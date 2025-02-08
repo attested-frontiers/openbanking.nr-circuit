@@ -1,32 +1,17 @@
-use crate::constants::{RevolutVerifierParams, RevolutVerifierReturn};
+use crate::constants::{
+    AMOUNT_KEY, AMOUNT_KEY_LENGTH, CURRENCY_CODE_KEY, CURRENCY_CODE_KEY_LENGTH,
+    CURRENCY_CODE_VALUE_LENGTH, DEBTOR_ACCOUNT_KEY, INITIATION_KEY, INSTRUCTED_AMOUNT_KEY,
+    MAX_AMOUNT_VALUE_LENGTH, MAX_PAYLOAD_LENGTH, OpenbankingVerifierParams,
+    OpenbankingVerifierReturn, PAYLOAD_DATA_KEY, PAYMENT_ID_KEY, PAYMENT_ID_KEY_LENGTH,
+    PAYMENT_ID_LENGTH, SORT_CODE_KEY, SORT_CODE_KEY_LENGTH, SORT_CODE_VALUE_LENGTH
+};
 use bignum::{params::BigNumParams, RuntimeBigNum};
 use json_parser::JSON;
 use rsa_pss::rsa::verify_sha256_pss;
 use zkemail::partial_hash::{partial_sha256_var_end, partial_sha256_var_start};
 
-pub global MAX_JWT_SIZE: u32 = 1536;
-pub global MAX_PAYLOAD_LENGTH: u32 = 1024;
-
-pub global CURRENCY_CODE_VALUE_LENGTH: u32 = 3;
-pub global CURRENCY_CODE_KEY_LENGTH: u32 = 8;
-pub global SORT_CODE_KEY_LENGTH: u32 = 14;
-pub global SORT_CODE_VALUE_LENGTH: u32 = 14;
-pub global AMOUNT_KEY_LENGTH: u32 = 6;
-pub global MAX_AMOUNT_VALUE_LENGTH: u32 = 10;
-pub global PAYMENT_ID_KEY_LENGTH: u32 = 17;
-pub global PAYMENT_ID_LENGTH: u32 = 36;
-
-pub global AMOUNT_KEY: [u8; AMOUNT_KEY_LENGTH] = comptime { "Amount".as_bytes() };
-pub global CURRENCY_CODE_KEY: [u8; CURRENCY_CODE_KEY_LENGTH] = comptime { "Currency".as_bytes() };
-pub global DEBTOR_ACCOUNT_KEY: [u8; 13] = comptime { "DebtorAccount".as_bytes() };
-pub global INITIATION_KEY: [u8; 10] = comptime { "Initiation".as_bytes() };
-pub global INSTRUCTED_AMOUNT_KEY: [u8; 16] = comptime { "InstructedAmount".as_bytes() };
-pub global PAYLOAD_DATA_KEY: [u8; 4] = comptime { "Data".as_bytes() };
-pub global PAYMENT_ID_KEY: [u8; PAYMENT_ID_KEY_LENGTH] = comptime { "DomesticPaymentId".as_bytes() };
-pub global SORT_CODE_KEY: [u8; SORT_CODE_KEY_LENGTH] = comptime { "Identification".as_bytes() };
-
-fn verify_revolut(params: RevolutVerifierParams) -> RevolutVerifierReturn {
-    let RevolutVerifierParams {
+fn verify_openbanking_payment(params: OpenbankingVerifierParams) -> OpenbankingVerifierReturn {
+    let OpenbankingVerifierParams {
     signature_limbs,
     modulus_limbs,
     redc_limbs,
@@ -86,7 +71,8 @@ fn verify_revolut(params: RevolutVerifierParams) -> RevolutVerifierReturn {
     let debtor_acc_obj = initiation_obj.get_object(DEBTOR_ACCOUNT_KEY).unwrap();
 
     // extract payment id
-    let payment_id_result = data_obj.get_string_unchecked::<PAYMENT_ID_KEY_LENGTH, PAYMENT_ID_LENGTH>(PAYMENT_ID_KEY);
+    let payment_id_result =
+        data_obj.get_string_unchecked::<PAYMENT_ID_KEY_LENGTH, PAYMENT_ID_LENGTH>(PAYMENT_ID_KEY);
 
     // extract sort code
     let sort_code_result = debtor_acc_obj
@@ -103,7 +89,7 @@ fn verify_revolut(params: RevolutVerifierParams) -> RevolutVerifierReturn {
             CURRENCY_CODE_KEY,
         );
 
-    RevolutVerifierReturn {
+    OpenbankingVerifierReturn {
         amount: amount_result,
         currency_code: currency_code_result.storage,
         payment_id: payment_id_result.storage,

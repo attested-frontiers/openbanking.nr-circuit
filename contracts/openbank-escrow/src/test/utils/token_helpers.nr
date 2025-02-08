@@ -62,7 +62,6 @@ pub unconstrained fn check_private_balance(
     cheatcodes::set_contract_address(token_contract_address);
     // Direct call to unconstrained
     let balance_of_private = Token::balance_of_private(address);
-    std::println(balance_of_private.lo as u32);
     assert(balance_of_private == address_amount, "Private balance is not correct");
     cheatcodes::set_contract_address(current_contract_address);
 }

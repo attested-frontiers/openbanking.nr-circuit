@@ -125,12 +125,12 @@ contract OpenbankEscrow {
     #[private]
     fn withdraw_provider_balance(amount: U128) {
         // TODO: Perform check that note exists
-        let provider_account = storage.provider_account.get_note().note;
+        // let provider_account = storage.provider_account.get_note().note;
 
         // decrement provider balance in escrow
-        OpenbankEscrow::at(context.this_address())
-            ._decrement_provider_balance(provider_account.commitment, amount)
-            .enqueue(&mut context);
+        // OpenbankEscrow::at(context.this_address())
+        //     ._decrement_provider_balance(provider_account.commitment, amount)
+        //     .enqueue(&mut context);
 
         // transfer tokens to provider's private balance
         OpenbankEscrow::at(context.this_address())

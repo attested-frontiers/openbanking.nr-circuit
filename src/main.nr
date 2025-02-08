@@ -1,12 +1,13 @@
 use dep::openbanking_verifier::{
-    constants::{RevolutVerifierParams, RevolutVerifierReturn},
-    revolut::{
-        MAX_AMOUNT_VALUE_LENGTH, MAX_PAYLOAD_LENGTH, partial_sha256_var_start, verify_revolut,
+    constants::{
+        MAX_AMOUNT_VALUE_LENGTH, MAX_PAYLOAD_LENGTH, OpenbankingVerifierParams,
+        OpenbankingVerifierReturn,
     },
+    verify::{partial_sha256_var_start, verify_openbanking_payment},
 };
 
-fn main(params: RevolutVerifierParams) -> pub RevolutVerifierReturn {
-    verify_revolut(params)
+fn main(params: OpenbankingVerifierParams) -> pub OpenbankingVerifierReturn {
+    verify_openbanking_payment(params)
 }
 
 // TEST GLOBALS
@@ -109,7 +110,7 @@ fn test_main() {
     let payload_vec: BoundedVec<u8, MAX_PAYLOAD_LENGTH> =
         BoundedVec { storage: payload, len: TEST_PAYLOAD_LENGTH };
 
-    let params = RevolutVerifierParams {
+    let params = OpenbankingVerifierParams {
         signature_limbs,
         modulus_limbs,
         redc_limbs,
@@ -131,7 +132,10 @@ fn test_main() {
     }
 
     assert(amount_padded == res.amount.storage, "Expected amount not equal to extracted amount.");
-    assert(currency_code == res.currency_code, "Expected currency code not equal to extracted currency code.");
+    assert(
+        currency_code == res.currency_code,
+        "Expected currency code not equal to extracted currency code.",
+    );
     assert(payment_id == res.payment_id, "Expected payment id not equal to extracted payment id.");
     assert(sort_code == res.sort_code, "Expected sort code not equal to extracted sort code.");
 }

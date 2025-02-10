@@ -1,7 +1,8 @@
 {
   "name": "@openbanking.nr/js-inputs",
   "version": "1.0.0",
-  "main": "src/index.js",
+  "main": "dist",
+  "types": "dist",
   "license": "MIT",
   "scripts": {
     "build": "tsc",

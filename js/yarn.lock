@@ -1835,7 +1835,7 @@
     "@noir-lang/noirc_abi" "1.0.0-beta.1"
     "@noir-lang/types" "1.0.0-beta.1"
 
-"@noir-lang/noirc_abi@1.0.0-beta.1":
+"@noir-lang/noirc_abi@1.0.0-beta.1", "@noir-lang/noirc_abi@^1.0.0-beta.1":
   version "1.0.0-beta.1"
   resolved "https://registry.yarnpkg.com/@noir-lang/noirc_abi/-/noirc_abi-1.0.0-beta.1.tgz#8ecd9a9408aafba275b889b845cba77386742148"
   integrity sha512-Me2LrH57YZl47UvHnzPd02pw8H9snJLob6dv6clbFB7ac6Y8jZvH/YhNGOejgj1fudr/J/V6o+YZaf4oLpxtMg==

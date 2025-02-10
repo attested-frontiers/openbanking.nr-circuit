@@ -3,8 +3,13 @@ import { KeyObject } from 'crypto';
 import { partialSha } from '@zk-email/helpers';
 
 import { MAX_AMOUNT_LENGTH, MAX_JWT_SIZE, MAX_PAYLOAD_SIZE } from './constants';
-import { OpenBankingCircuitInputs } from './types';
+import {
+  OpenBankingDomesticCircuitInputs,
+  OpenBankingDomesticCircuitOutputs,
+  OpenBankingDomesticCircuitOutputsRaw
+} from './types';
 import { bytesToBigInt, base64UrlToBytes, toBoundedVec, u8ToU32 } from './utils';
+import { InputValue } from '@noir-lang/noirc_abi';
 
 export function generatePubkeyParams(pubkey: KeyObject): { modulus_limbs: string[]; redc_limbs: string[] } {
   // todo: stronger type check key input
@@ -19,7 +24,7 @@ export function generatePubkeyParams(pubkey: KeyObject): { modulus_limbs: string
   };
 }
 
-export function generateNoirInputs(payload: string, signature: string, publicKey: KeyObject): OpenBankingCircuitInputs {
+export function generateNoirInputs(payload: string, signature: string, publicKey: KeyObject): OpenBankingDomesticCircuitInputs {
   const { modulus_limbs, redc_limbs } = generatePubkeyParams(publicKey);
   const signature_limbs = NoirBignum.bnToLimbStrArray(signature);
 
@@ -66,4 +71,14 @@ export function generateNoirInputs(payload: string, signature: string, publicKey
     currency_code,
     sort_code,
   };
+}
+// : OpenBankingDomesticCircuitOutputs
+export function decodeNoirOutputs(outputs: InputValue) {
+  const outputRaw = outputs as OpenBankingDomesticCircuitOutputsRaw;
+  const amountRaw = outputRaw.amount.storage.slice(0, parseInt(outputRaw.amount.len as string, 16)) as string[];
+  const amount = Number(Buffer.from(amountRaw.map(b => parseInt(b))).toString('utf-8'));
+  const currencyCode = Buffer.from(outputRaw.currency_code.map(b => parseInt(b))).toString('utf-8');
+  const paymentId = Buffer.from(outputRaw.payment_id.map(b => parseInt(b))).toString('utf-8');
+  const sortCode = Buffer.from(outputRaw.sort_code.map(b => parseInt(b))).toString('utf-8');
+  return { amount, currencyCode, paymentId, sortCode };
 }

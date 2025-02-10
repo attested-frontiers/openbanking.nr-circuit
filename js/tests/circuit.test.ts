@@ -4,6 +4,7 @@ import { Noir } from '@noir-lang/noir_js';
 
 import {
   OpenBankingDomesticCircuit,
+  decodeNoirOutputs,
   generateNoirInputs,
 } from '../src';
 
@@ -26,8 +27,17 @@ describe('OpenBanking.nr Circuit Test', () => {
     it('Test execution', async () => {
       const inputs = generateNoirInputs(payload, signature, publicKey);
       const result = await noir.execute({params: inputs });
-      console.log("result", result);
-      expect(result).toBeDefined();
+      const outputs = decodeNoirOutputs(result.returnValue);
+      console.log(outputs);
+
+      // expected outputs
+      const expectedOutputs = {
+        amount: 1, // 1.00 actually
+        currencyCode: "GBP",
+        paymentId: "6776972f-e9af-ad6a-8cdd-ff2099bd2475",
+        sortCode: "04290953215338"
+      };
+      expect(outputs).toEqual(expectedOutputs);
     });
   });
 });

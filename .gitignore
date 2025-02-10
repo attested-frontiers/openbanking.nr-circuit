@@ -4,3 +4,5 @@ node_modules
 noir_string_search
 noir-jwt
 noir_rsa
+dist
+.tsbuildinfo

@@ -3,7 +3,7 @@ export type BoundedVec = {
     len: string | number;
 }
 
-export type OpenBankingCircuitInputs = {
+export type OpenBankingDomesticCircuitInputs = {
     signature_limbs: string[] | number[],
     modulus_limbs: string[] | number[],
     redc_limbs: string[] | number[],
@@ -14,3 +14,17 @@ export type OpenBankingCircuitInputs = {
     currency_code: string[] | number[],
     sort_code: string[] | number[]
 };
+
+export type OpenBankingDomesticCircuitOutputsRaw = {
+    amount: BoundedVec,
+    currency_code: string[],
+    payment_id: string[],
+    sort_code: string[],
+}
+
+export type OpenBankingDomesticCircuitOutputs = {
+    amount: number,
+    currency_code: string,
+    payment_id: string,
+    sort_code: string
+}

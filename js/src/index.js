@@ -142,7 +142,7 @@ const main = async () => {
   const { publicKey } = new X509Certificate(cert);
   const inputs = await generateNoirInputs(payload, signature, publicKey);
   const noir = new Noir(circuit);
-  const { witness } = await noir.execute(inputs);
+  const { witness } = await noir.execute({ params: inputs });
   console.log('Witness: ', witness);
 };
 

@@ -1,0 +1,32 @@
+{
+    "compilerOptions": {
+        "rootDirs": [
+            "src",
+            "tests"
+        ],
+        "target": "ESNext",
+        "lib": [
+            "dom",
+            "esnext",
+            "es2017.object"
+        ],
+        "types": ["jest", "node"],
+        "module": "ESNext",
+        "moduleResolution": "node",
+        "strict": true,
+        "declaration": true,
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        "downlevelIteration": true,
+        "inlineSourceMap": true,
+        "declarationMap": true,
+        "importHelpers": true,
+        "resolveJsonModule": true,
+        "skipLibCheck": true,
+        "outDir": "dist",
+        "paths": {
+            "@mach-34/z-imburse/*": ["./src/*"]
+        }
+    },
+    "include": ["src", ".babelrc", "jest.config.js", "tests/txe"],
+}

@@ -1,92 +1,13 @@
-use bignum::{params::BigNumParams, RuntimeBigNum};
-use json_parser::JSON;
-use rsa_pss::rsa::verify_sha256_pss;
-use zkemail::partial_hash::{partial_sha256_var_start, partial_sha256_var_end};
+use dep::openbanking_verifier::{
+    constants::{
+        MAX_AMOUNT_VALUE_LENGTH, MAX_PAYLOAD_LENGTH, OpenbankingVerifierParams,
+        OpenbankingVerifierReturn,
+    },
+    verify::{partial_sha256_var_start, verify_openbanking_payment},
+};
 
-pub global MAX_JWT_SIZE: u32 = 1536;
-pub global MAX_PAYLOAD_LENGTH: u32 = 1024;
-
-pub global CURRENCY_CODE_VALUE_LENGTH: u32 = 3;
-pub global CURRENCY_CODE_KEY_LENGTH: u32 = 8;
-pub global SORT_CODE_KEY_LENGTH: u32 = 14;
-pub global SORT_CODE_VALUE_LENGTH: u32 = 14;
-pub global AMOUNT_KEY_LENGTH: u32 = 6;
-pub global MAX_AMOUNT_VALUE_LENGTH: u32 = 10;
-
-pub global AMOUNT_KEY: [u8; AMOUNT_KEY_LENGTH] = comptime { "Amount".as_bytes() };
-pub global CURRENCY_CODE_KEY: [u8; CURRENCY_CODE_KEY_LENGTH] = comptime { "Currency".as_bytes() };
-pub global DEBTOR_ACCOUNT_KEY: [u8; 13] = comptime { "DebtorAccount".as_bytes() };
-pub global INITIATION_KEY: [u8; 10] = comptime { "Initiation".as_bytes() };
-pub global INSTRUCTED_AMOUNT_KEY: [u8; 16] = comptime { "InstructedAmount".as_bytes() };
-pub global PAYLOAD_DATA_KEY: [u8; 4] = comptime { "Data".as_bytes() };
-pub global SORT_CODE_KEY: [u8; SORT_CODE_KEY_LENGTH] = comptime { "Identification".as_bytes() };
-
-
-fn main(
-    signature_limbs: [Field; 18],
-    modulus_limbs: [Field; 18],
-    redc_limbs: [Field; 18],
-    partial_hash_start: [u32; 8],
-    header_delimiter_index: u32,
-    mut payload: BoundedVec<u8, MAX_PAYLOAD_LENGTH>, 
-    amount: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH>,
-    currency_code: [u8; CURRENCY_CODE_VALUE_LENGTH],
-    sort_code: [u8; SORT_CODE_VALUE_LENGTH],
-) {
-    // calculate length of payload already hashed by finding next lowest value divisible by 64 from delimiter index
-    let partial_hash_start_preimage_length = header_delimiter_index - (header_delimiter_index % 64);
-
-    let has_multiplicative_inverse = false;
-    let params: BigNumParams<18, 2048> =
-        BigNumParams::new(has_multiplicative_inverse, modulus_limbs, redc_limbs);
-
-    let signature: RuntimeBigNum<18, 2048> = RuntimeBigNum::from_array(params, signature_limbs);
-
-    // get complete hash of JWT by taking partial hash start and hashing the rest of the payload
-    let hash: [u8; 32] = partial_sha256_var_end(partial_hash_start, payload.storage, payload.len() as u64, payload.len() as u64 + partial_hash_start_preimage_length as u64);
-
-    // verify signature over payload
-    assert(verify_sha256_pss(hash, signature, 2048));
-
-    // calculate remaning chars up to header / payload delimiter (".") that were not in the initial hash
-    let carry_over_end_index = header_delimiter_index - partial_hash_start_preimage_length as u32;
-
-    // if carry over is not 0 then set first index to whitespace (32)
-    let mut byte = payload.get_unchecked(0);
-    if carry_over_end_index != 0 {
-        byte = 32;
-    }
-    payload.set(0, byte);
-
-    // set values prior and up to delimiter to whitespace so JSON parser does not get angry
-    for i in 1..64 {
-        let mut index = i;
-        if i > carry_over_end_index {
-            index = carry_over_end_index;
-        }
-        payload.set(index, 32); 
-    }
-
-    // init JSON. Note: Parameters may need to be adjusted depending on payload variability
-    let json: JSON<1024, 34, 106, 29, 2> = JSON::parse_json(payload.storage);
-
-    // parse through nested JSON to extract values
-    let data_obj = json.get_object(PAYLOAD_DATA_KEY).unwrap();
-    let initiation_obj =  data_obj.get_object(INITIATION_KEY).unwrap();
-    let debtor_acc_obj = initiation_obj.get_object(DEBTOR_ACCOUNT_KEY).unwrap();
-
-    // extract sort code
-    let sort_code_result = debtor_acc_obj.get_string_unchecked::<SORT_CODE_KEY_LENGTH, SORT_CODE_VALUE_LENGTH>(SORT_CODE_KEY);
-    assert(sort_code_result.storage == sort_code);
-
-    let instructed_amt_obj = initiation_obj.get_object(INSTRUCTED_AMOUNT_KEY).unwrap();    
-    // extract amount
-    let amount_result = instructed_amt_obj.get_string_unchecked::<AMOUNT_KEY_LENGTH, MAX_AMOUNT_VALUE_LENGTH>(AMOUNT_KEY);
-    assert(amount_result.storage == amount.storage);
-
-    // extract currency code
-    let currency_result = instructed_amt_obj.get_string_unchecked::<CURRENCY_CODE_KEY_LENGTH, CURRENCY_CODE_VALUE_LENGTH>(CURRENCY_CODE_KEY);
-    assert(currency_result.storage == currency_code);
+fn main(params: OpenbankingVerifierParams) -> pub OpenbankingVerifierReturn {
+    verify_openbanking_payment(params)
 }
 
 // TEST GLOBALS
@@ -163,17 +84,22 @@ fn test_main() {
     ];
 
     // Revolut JWT
-    let jwt = comptime { "eyJraWQiOiJvSjQwLUcxVklxbUU2eUhuYnA4S1E1Qmk2bXciLCJhbGciOiJQUzI1NiIsImNyaXQiOlsiYjY0IiwiaHR0cDovL29wZW5iYW5raW5nLm9yZy51ay9pYXQiLCJodHRwOi8vb3BlbmJhbmtpbmcub3JnLnVrL2lzcyIsImh0dHA6Ly9vcGVuYmFua2luZy5vcmcudWsvdGFuIl0sImI2NCI6ZmFsc2UsImh0dHA6Ly9vcGVuYmFua2luZy5vcmcudWsvdGFuIjoib3BlbmJhbmtpbmcub3JnLnVrIiwiaHR0cDovL29wZW5iYW5raW5nLm9yZy51ay9pc3MiOiIwMDE1ODAwMDAxMDNVQXZBQU0iLCJodHRwOi8vb3BlbmJhbmtpbmcub3JnLnVrL2lhdCI6MTczNTgyNTE5OX0.{\"Data\":{\"DomesticPaymentId\":\"6776972f-e9af-ad6a-8cdd-ff2099bd2475\",\"Status\":\"Pending\",\"StatusUpdateDateTime\":\"2025-01-02T13:39:59.455059Z\",\"CreationDateTime\":\"2025-01-02T13:39:59.455059Z\",\"ConsentId\":\"6d2e1641-e486-4a3a-936b-065628f2a926\",\"Initiation\":{\"RemittanceInformation\":{\"Unstructured\":\"Shipment fee\"},\"DebtorAccount\":{\"SchemeName\":\"UK.OBIE.SortCodeAccountNumber\",\"Identification\":\"04290953215338\",\"Name\":\"Acme Corporation\"},\"EndToEndIdentification\":\"E2E123\",\"InstructionIdentification\":\"ID412\",\"CreditorAccount\":{\"Name\":\"Receiver Co.\",\"SchemeName\":\"UK.OBIE.SortCodeAccountNumber\",\"Identification\":\"11223321325698\"},\"InstructedAmount\":{\"Amount\":\"1.00\",\"Currency\":\"GBP\"}}},\"Links\":{\"Self\":\"https://sandbox-oba.revolut.com/domestic-payments/6776972f-e9af-ad6a-8cdd-ff2099bd2475\"},\"Meta\":{\"TotalPages\":1}}".as_bytes() };
+    let jwt = comptime {
+        "eyJraWQiOiJvSjQwLUcxVklxbUU2eUhuYnA4S1E1Qmk2bXciLCJhbGciOiJQUzI1NiIsImNyaXQiOlsiYjY0IiwiaHR0cDovL29wZW5iYW5raW5nLm9yZy51ay9pYXQiLCJodHRwOi8vb3BlbmJhbmtpbmcub3JnLnVrL2lzcyIsImh0dHA6Ly9vcGVuYmFua2luZy5vcmcudWsvdGFuIl0sImI2NCI6ZmFsc2UsImh0dHA6Ly9vcGVuYmFua2luZy5vcmcudWsvdGFuIjoib3BlbmJhbmtpbmcub3JnLnVrIiwiaHR0cDovL29wZW5iYW5raW5nLm9yZy51ay9pc3MiOiIwMDE1ODAwMDAxMDNVQXZBQU0iLCJodHRwOi8vb3BlbmJhbmtpbmcub3JnLnVrL2lhdCI6MTczNTgyNTE5OX0.{\"Data\":{\"DomesticPaymentId\":\"6776972f-e9af-ad6a-8cdd-ff2099bd2475\",\"Status\":\"Pending\",\"StatusUpdateDateTime\":\"2025-01-02T13:39:59.455059Z\",\"CreationDateTime\":\"2025-01-02T13:39:59.455059Z\",\"ConsentId\":\"6d2e1641-e486-4a3a-936b-065628f2a926\",\"Initiation\":{\"RemittanceInformation\":{\"Unstructured\":\"Shipment fee\"},\"DebtorAccount\":{\"SchemeName\":\"UK.OBIE.SortCodeAccountNumber\",\"Identification\":\"04290953215338\",\"Name\":\"Acme Corporation\"},\"EndToEndIdentification\":\"E2E123\",\"InstructionIdentification\":\"ID412\",\"CreditorAccount\":{\"Name\":\"Receiver Co.\",\"SchemeName\":\"UK.OBIE.SortCodeAccountNumber\",\"Identification\":\"11223321325698\"},\"InstructedAmount\":{\"Amount\":\"1.00\",\"Currency\":\"GBP\"}}},\"Links\":{\"Self\":\"https://sandbox-oba.revolut.com/domestic-payments/6776972f-e9af-ad6a-8cdd-ff2099bd2475\"},\"Meta\":{\"TotalPages\":1}}"
+            .as_bytes()
+    };
 
     // extract beginning of JWT to create partial hash start. Smallest value divisble by block size (64) is
-    // 384 in this case 
-    let mut partial_hash_start_preimage: [u8; TEST_PH_START_PREIMAGE_LENGTH] = [0; TEST_PH_START_PREIMAGE_LENGTH];
+    // 384 in this case
+    let mut partial_hash_start_preimage: [u8; TEST_PH_START_PREIMAGE_LENGTH] =
+        [0; TEST_PH_START_PREIMAGE_LENGTH];
     for i in 0..partial_hash_start_preimage.len() {
         partial_hash_start_preimage[i] = jwt[i];
     }
 
     // partial hash start
-    let partial_hash_start = partial_sha256_var_start::<TEST_PH_START_PREIMAGE_LENGTH>(partial_hash_start_preimage);
+    let partial_hash_start =
+        partial_sha256_var_start::<TEST_PH_START_PREIMAGE_LENGTH>(partial_hash_start_preimage);
 
     let mut payload: [u8; MAX_PAYLOAD_LENGTH] = [32; MAX_PAYLOAD_LENGTH];
     // extract rest of payload to pass in circuit
@@ -181,27 +107,35 @@ fn test_main() {
         payload[i] = jwt[i + TEST_PH_START_PREIMAGE_LENGTH];
     }
 
-    let payload_vec: BoundedVec<u8, MAX_PAYLOAD_LENGTH> = BoundedVec { storage: payload, len: TEST_PAYLOAD_LENGTH };
+    let payload_vec: BoundedVec<u8, MAX_PAYLOAD_LENGTH> =
+        BoundedVec { storage: payload, len: TEST_PAYLOAD_LENGTH };
+
+    let params = OpenbankingVerifierParams {
+        signature_limbs,
+        modulus_limbs,
+        redc_limbs,
+        partial_hash_start,
+        header_delimiter_index: TEST_HEADER_DELIMITER_INDEX_LENGTH,
+        payload: payload_vec,
+    };
+
+    let res = main(params);
 
     let amount = comptime { "1.00".as_bytes() };
     let currency_code = comptime { "GBP".as_bytes() };
+    let payment_id = comptime { "6776972f-e9af-ad6a-8cdd-ff2099bd2475".as_bytes() };
     let sort_code = comptime { "04290953215338".as_bytes() };
 
     let mut amount_padded: [u8; MAX_AMOUNT_VALUE_LENGTH] = [0; MAX_AMOUNT_VALUE_LENGTH];
     for i in 0..amount.len() {
         amount_padded[i] = amount[i];
     }
-    let amount_value: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH> = BoundedVec { storage: amount_padded, len: amount.len() };
 
-    main(
-        signature_limbs,
-        modulus_limbs,
-        redc_limbs,
-        partial_hash_start,
-        TEST_HEADER_DELIMITER_INDEX_LENGTH,
-        payload_vec,
-        amount_value,
-        currency_code,
-        sort_code
+    assert(amount_padded == res.amount.storage, "Expected amount not equal to extracted amount.");
+    assert(
+        currency_code == res.currency_code,
+        "Expected currency code not equal to extracted currency code.",
     );
+    assert(payment_id == res.payment_id, "Expected payment id not equal to extracted payment id.");
+    assert(sort_code == res.sort_code, "Expected sort code not equal to extracted sort code.");
 }

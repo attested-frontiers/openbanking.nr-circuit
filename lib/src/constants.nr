@@ -1,4 +1,4 @@
-use aztec::protocol_types::traits::Serialize;
+// use aztec::protocol_types::traits::Serialize;
 
 // JWT constants
 pub global MAX_JWT_SIZE: u32 = 1536;
@@ -40,7 +40,7 @@ pub struct OpenbankingVerifierParams {
     payload: BoundedVec<u8, MAX_PAYLOAD_LENGTH>,
 }
 
-#[derive(Serialize)]
+// #[derive(Serialize)]
 pub struct OpenbankingVerifierParamsContract {
     signature_limbs: [Field; 18],
     modulus_limbs: [Field; 18],

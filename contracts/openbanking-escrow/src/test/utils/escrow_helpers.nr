@@ -1,4 +1,4 @@
-use crate::{OpenbankingEscrow, types::provider_balance::ProviderBalance};
+use crate::{OpenbankingEscrow, types::{provider_balance::ProviderBalance, OpenbankingVerifierParamsContract}};
 use authwit::cheatcodes as authwit_cheatcodes;
 use aztec::{
     oracle::{execution::{get_block_number, get_contract_address}, storage::storage_read},
@@ -6,7 +6,6 @@ use aztec::{
     protocol_types::storage::map::derive_storage_slot_in_map,
     test::helpers::{cheatcodes, test_environment::TestEnvironment},
 };
-use openbanking_verifier::constants::OpenbankingVerifierParamsContract;
 use token::Token;
 
 pub unconstrained fn increment_balance(

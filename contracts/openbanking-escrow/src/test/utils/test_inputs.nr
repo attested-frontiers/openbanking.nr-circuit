@@ -1,6 +1,7 @@
 use dep::openbanking_verifier::constants::{
-    CURRENCY_CODE_VALUE_LENGTH, OpenbankingVerifierParamsContract, SORT_CODE_VALUE_LENGTH,
+    CURRENCY_CODE_VALUE_LENGTH, SORT_CODE_VALUE_LENGTH,
 };
+use crate::types::OpenbankingVerifierParamsContract;
 
 pub global REVOLUT_PAYMENT_PAYLOAD: OpenbankingVerifierParamsContract = OpenbankingVerifierParamsContract {
     modulus_limbs: [

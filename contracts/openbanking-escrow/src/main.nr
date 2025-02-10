@@ -1,47 +1,74 @@
 use dep::aztec::macros::aztec;
 
 mod types;
-mod test;
+// mod test;
 mod utils;
 
 #[aztec]
 contract OpenbankingEscrow {
 
+    global MAX_KEY_HASHES_PER_TX: u32 = 4;
+
     use crate::{
-        types::{provider_balance::ProviderBalance, provider_note::ProviderNote},
-        utils::{bytes_to_num, pack_bytes},
+        types::{
+            OpenbankingVerifierParamsContract, provider_balance::ProviderBalance,
+            provider_note::ProviderNote, settings::Settings
+        },
+        utils::{bytes_to_num, pack_bytes, hash_pubkey},
     };
-    use dep::aztec::{
+    use aztec::{
         encrypted_logs::encrypted_note_emission::encode_and_encrypt_note,
-        macros::{functions::{initializer, internal, private, public, view}, storage::storage},
+        macros::{functions::{initializer, internal, private, public}, storage::storage},
         prelude::{
-            AztecAddress, FunctionSelector, Map, PrivateMutable, PublicImmutable, PublicMutable,
+            AztecAddress, Map, PrivateMutable, PublicImmutable, PublicMutable,
         },
         protocol_types::utils::field::field_from_bytes,
     };
-    use dep::openbanking_verifier::{
+    use openbanking_verifier::{
         constants::{
-            CURRENCY_CODE_VALUE_LENGTH, MAX_AMOUNT_VALUE_LENGTH, OpenbankingVerifierParamsContract,
-            OpenbankingVerifierReturn, PAYMENT_ID_LENGTH, SORT_CODE_VALUE_LENGTH,
+            CURRENCY_CODE_VALUE_LENGTH, MAX_AMOUNT_VALUE_LENGTH, OpenbankingVerifierReturn,
+            PAYMENT_ID_LENGTH, SORT_CODE_VALUE_LENGTH,
         },
         verify::verify_openbanking_payment,
     };
-    use dep::std::hash::poseidon2::Poseidon2;
-    use dep::token::Token;
+    use std::hash::poseidon2::Poseidon2;
+    use token::Token;
 
     #[storage]
     struct Storage<Context> {
         provider_account: PrivateMutable<ProviderNote, Context>,
         provider_balances: Map<Field, PublicMutable<ProviderBalance, Context>, Context>,
         spent_payments: Map<Field, PublicMutable<bool, Context>, Context>,
-        token_contract: PublicImmutable<AztecAddress, Context>,
+        settings: PublicImmutable<Settings, Context>,
+        pubkey_registry: Map<Field, PublicImmutable<bool, Context>, Context>,
     }
 
     #[public]
     #[initializer]
-    fn constructor(token_address: AztecAddress) {
-        storage.token_contract.initialize(token_address);
+    fn constructor(token_address: AztecAddress, ) {
+        storage.settings.initialize(Settings::new(token_address, context.msg_sender()));
     }
+
+    #[public]
+    fn add_key_hashes(key_hashes: [Field; MAX_KEY_HASHES_PER_TX]) {
+        let admin = storage.settings.read().admin;
+        assert(admin == context.msg_sender(), "Only admin can add key hashes");
+        for i in 0..MAX_KEY_HASHES_PER_TX {
+            if key_hashes[i] != 0 {
+                storage.pubkey_registry.at(key_hashes[i]).initialize(true);
+            }
+        }
+    }
+
+    // #[public]
+    // fn revoke_key(key_hash: Field) {
+    //     let admin = storage.settings.read().admin;
+    //     assert(admin == context.msg_sender(), "Only admin can revoke keys");
+    //     // todo: should we require the key to be added to remove it? I think no
+    //     let revocation_hash = Poseidon2::hash(key_hash, 1);
+    //     storage.pubkey_registry.at(revocation_hash).initialize(true);
+    //     // todo: can you even tell if a it is initialized? IDT so
+    // }
 
     #[private]
     fn increment_provider_balance(amount: U128) {
@@ -49,7 +76,7 @@ contract OpenbankingEscrow {
         let provider_account = storage.provider_account.get_note().note;
 
         // transfer private token balance to public balance of escrow
-        let token_contract = storage.token_contract.read();
+        let token_contract = storage.settings.read().token;
         Token::at(token_contract)
             .transfer_to_public(context.msg_sender(), context.this_address(), amount, 0)
             .call(&mut context);
@@ -83,7 +110,7 @@ contract OpenbankingEscrow {
             .enqueue(&mut context);
 
         // transfer private token balance to public balance of escrow
-        let token_contract = storage.token_contract.read();
+        let token_contract = storage.settings.read().token;
         Token::at(token_contract)
             .transfer_to_public(context.msg_sender(), context.this_address(), amount, 0)
             .call(&mut context);
@@ -110,6 +137,17 @@ contract OpenbankingEscrow {
         // hash payment id
         let payment_id_packed = pack_bytes::<PAYMENT_ID_LENGTH>(payment_id);
         let payment_hash = Poseidon2::hash(payment_id_packed, 2);
+
+        // hash the public key
+        let public_key_hash = hash_pubkey(
+            openbanking_params.modulus_limbs,
+            openbanking_params.redc_limbs,
+        );
+        let valid_key_hash = storage.pubkey_registry.at(public_key_hash).read();
+        assert(valid_key_hash == true, "Invalid public key hash.");
+
+        // let revocation_hash = Poseidon2::hash(public_key_hash, 1);
+        // todo: check key is not revoked
 
         // update public balance
         OpenbankingEscrow::at(context.this_address())
@@ -221,7 +259,7 @@ contract OpenbankingEscrow {
     #[private]
     #[internal]
     fn _withdraw_tokens(user: AztecAddress, amount: U128) {
-        let token_contract = Token::at(storage.token_contract.read());
+        let token_contract = Token::at(storage.settings.read().token);
         let hiding_point_slot =
             token_contract.prepare_private_balance_increase(user, user).call(&mut context);
         token_contract.finalize_transfer_to_private(amount, hiding_point_slot).enqueue(&mut context);

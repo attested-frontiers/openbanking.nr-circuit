@@ -157,15 +157,36 @@ contract OpenbankingEscrow {
     }
 
     #[private]
+    fn prompt_withdraw_escrow_balance(amount: U128) {
+        let escrow_owner = context.msg_sender();
+        let escrow_owner_note = storage.escrow_owners.at(escrow_owner).get_note().note;
+        assert(escrow_owner_note.owner == escrow_owner, "Cannot use escrow owner note");
+        let escrow_contract = OpenbankingEscrow::at(context.this_address());
+        escrow_contract
+            ._prompt_withdraw_escrow_balance(escrow_owner_note.commitment, amount)
+            .enqueue(&mut context);
+    }
+
+    #[public]
+    #[internal]
+    fn _prompt_withdraw_escrow_balance(commitment: Field, amount: U128) {
+        // check that commitment doesn't already exist
+        let mut escrow_balance = storage.escrow_balances.at(commitment).read();
+        escrow_balance.assert_initialized(true);
+
+        escrow_balance.mark_for_withdrawal(amount, context.block_number());
+        storage.escrow_balances.at(commitment).write(escrow_balance);
+    }
+
+    #[private]
     fn withdraw_escrow_balance(amount: U128) {
         let escrow_owner = context.msg_sender();
         // TODO: Perform check that note exists
         let escrow_owner_note = storage.escrow_owners.at(escrow_owner).get_note().note;
         assert(escrow_owner_note.owner == escrow_owner, "Cannot use escrow owner note");
 
-        let escrow_contract = OpenbankingEscrow::at(context.this_address());
         // decrement escrow balance in escrow
-        escrow_contract
+        OpenbankingEscrow::at(context.this_address())
             ._decrement_escrow_balance(escrow_owner_note.commitment, amount)
             .enqueue(&mut context);
 

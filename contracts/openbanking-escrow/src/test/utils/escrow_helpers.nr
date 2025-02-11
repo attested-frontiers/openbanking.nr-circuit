@@ -84,6 +84,23 @@ pub unconstrained fn prove_payment(
     cheatcodes::advance_blocks_by(1);
 }
 
+pub unconstrained fn prompt_withdrawal(
+    env: &mut TestEnvironment,
+    escrow_owner: AztecAddress,
+    escrow_address: AztecAddress,
+    amount: U128,
+    advance: bool
+) {
+    env.impersonate(escrow_owner);
+    let escrow = OpenbankingEscrow::at(escrow_address);
+    let _ = escrow.prompt_withdraw_escrow_balance(amount).call(&mut env.private());
+    let mut blocks_to_advance = 1;
+    if advance {
+        blocks_to_advance += 1;
+    }
+    cheatcodes::advance_blocks_by(blocks_to_advance);
+}
+
 pub unconstrained fn withdraw(
     env: &mut TestEnvironment,
     escrow_owner: AztecAddress,

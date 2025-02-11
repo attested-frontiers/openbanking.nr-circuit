@@ -27,10 +27,19 @@ export async function getPubkeyHashes(jwksURI: string, issuing?: string, root?: 
             .then(res => new X509Certificate(res.data))
             .then(cert => generatePubkeyParams(cert.publicKey));
     }));
+
+    const x = await Promise.all(x5uURIs.map(async x5u => {
+        return await axios
+            .get(x5u, { responseType: 'text', httpsAgent: agent })
+            .then(res => new X509Certificate(res.data))
+    }));
+
     const api = await BarretenbergSync.initSingleton();
     const pubkeyHashes = pubkeys.map(pubkey => {
         return api.poseidon2Hash(compressPubkeyPreimage(pubkey));
     });
+
+    console.log("pubkeyHashes", pubkeyHashes)
     return pubkeyHashes;
 }
 

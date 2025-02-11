@@ -12,13 +12,13 @@ use aztec::{
 };
 
 #[note]
-pub struct ProviderNote {
+pub struct EscrowOwnerNote {
     commitment: Field,
     owner: AztecAddress,
     randomness: Field,
 }
 
-impl NullifiableNote for ProviderNote {
+impl NullifiableNote for EscrowOwnerNote {
     fn compute_nullifier(
         self,
         context: &mut PrivateContext,
@@ -43,8 +43,8 @@ impl NullifiableNote for ProviderNote {
     }
 }
 
-impl ProviderNote {
+impl EscrowOwnerNote {
     pub fn new(commitment: Field, randomness: Field, owner: AztecAddress) -> Self {
-        ProviderNote { commitment, randomness, owner, header: NoteHeader::empty() }
+        EscrowOwnerNote { commitment, randomness, owner, header: NoteHeader::empty() }
     }
 }

@@ -1,8 +1,8 @@
 use aztec::protocol_types::traits::Serialize;
 use openbanking_verifier::constants::{MAX_PAYLOAD_LENGTH, OpenbankingVerifierParams};
-mod provider_balance;
-mod provider_note;
-mod settings;
+mod escrow_balance;
+mod escrow_owner_note;
+mod config;
 
 
 #[derive(Serialize)]

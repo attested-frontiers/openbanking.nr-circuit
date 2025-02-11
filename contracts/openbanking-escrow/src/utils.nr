@@ -17,15 +17,7 @@ pub fn bytes_to_num<let MAX_AMOUNT_VALUE_LENGTH: u32>(
     U128::from_integer(converted * 10.pow_32(4))
 }
 
-pub fn pack_bytes<let N: u32>(bytes: [u8; N]) -> [Field; N / 31 + 1] {
-    let bytes_padded = bytes.pad_end::<(N / 31 + 1) * 31>(0);
-    let mut res = [0 as Field; N / 31 + 1];
-    for i in 0..N / 31 + 1 {
-        let chunk = bytes_padded.slice::<31>(i * 31);
-        res[i] = field_from_bytes(chunk, false);
-    }
-    res
-}
+
 
 pub fn hash_pubkey(modulus: [Field; 18], redc: [Field; 18]) -> Field {
     let mut dkim_preimage: [Field; 18] = [0; 18];

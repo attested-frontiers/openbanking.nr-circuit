@@ -1,4 +1,4 @@
-use crate::{OpenbankingEscrow, types::{escrow_balance::EscrowBalance, OpenbankingVerifierParamsContract}};
+use crate::{OpenbankingEscrow, types::{escrow_balance::EscrowBalance, openbanking::OpenbankingVerifierParamsContract}};
 use authwit::cheatcodes as authwit_cheatcodes;
 use aztec::{
     oracle::{execution::{get_block_number, get_contract_address}, storage::storage_read, random::random},

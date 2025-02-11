@@ -1,16 +1,18 @@
-use crate::constants::{
-    AMOUNT_KEY, AMOUNT_KEY_LENGTH, CURRENCY_CODE_KEY, CURRENCY_CODE_KEY_LENGTH,
-    CURRENCY_CODE_VALUE_LENGTH, DEBTOR_ACCOUNT_KEY, INITIATION_KEY, INSTRUCTED_AMOUNT_KEY,
-    MAX_AMOUNT_VALUE_LENGTH, MAX_PAYLOAD_LENGTH, OpenbankingVerifierParams,
-    OpenbankingVerifierReturn, PAYLOAD_DATA_KEY, PAYMENT_ID_KEY, PAYMENT_ID_KEY_LENGTH,
-    PAYMENT_ID_LENGTH, SORT_CODE_KEY, SORT_CODE_KEY_LENGTH, SORT_CODE_VALUE_LENGTH
+use crate::{
+    constants::{
+        AMOUNT_KEY, AMOUNT_KEY_LENGTH, CURRENCY_CODE_KEY, CURRENCY_CODE_KEY_LENGTH,
+        CURRENCY_CODE_VALUE_LENGTH, DEBTOR_ACCOUNT_KEY, INITIATION_KEY, INSTRUCTED_AMOUNT_KEY,
+        MAX_AMOUNT_VALUE_LENGTH, PAYLOAD_DATA_KEY, PAYMENT_ID_KEY, PAYMENT_ID_KEY_LENGTH,
+        PAYMENT_ID_LENGTH, SORT_CODE_KEY, SORT_CODE_KEY_LENGTH, SORT_CODE_VALUE_LENGTH,
+    },
+    io::{OpenbankingVerifierParams, OpenbankingVerifierReturn},
 };
 use bignum::{params::BigNumParams, RuntimeBigNum};
 use json_parser::JSON;
 use rsa_pss::rsa::verify_sha256_pss;
-use zkemail::partial_hash::{partial_sha256_var_end, partial_sha256_var_start};
+use zkemail::partial_hash::partial_sha256_var_end;
 
-fn verify_openbanking_payment(params: OpenbankingVerifierParams) -> OpenbankingVerifierReturn {
+pub fn verify_openbanking_payment(params: OpenbankingVerifierParams) -> OpenbankingVerifierReturn {
     let OpenbankingVerifierParams {
     signature_limbs,
     modulus_limbs,

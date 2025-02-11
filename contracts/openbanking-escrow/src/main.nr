@@ -102,10 +102,10 @@ contract OpenbankingEscrow {
         // create commitment
         let commitment = Poseidon2::hash([sort_code, currency_code], 2);
 
-        // init provider note
-        let mut escrow_note = EscrowOwnerNote::new(commitment, randomness, context.msg_sender());
+        // init escrow owner note
+        let mut escrow_owner_note = EscrowOwnerNote::new(commitment, randomness, context.msg_sender());
 
-        storage.escrow_owners.at(context.msg_sender()).initialize(&mut escrow_note).emit(encode_and_encrypt_note(
+        storage.escrow_owners.at(context.msg_sender()).initialize(&mut escrow_owner_note).emit(encode_and_encrypt_note(
             &mut context,
             context.msg_sender(),
             context.msg_sender(),
@@ -172,12 +172,12 @@ contract OpenbankingEscrow {
         let escrow_owner_note = storage.escrow_owners.at(context.msg_sender()).get_note().note;
         assert(escrow_owner_note.owner == context.msg_sender(), "Cannot use escrow owner note");
 
-        // decrement provider balance in escrow
+        // decrement escrow balance in escrow
         OpenbankingEscrow::at(context.this_address())
             ._decrement_escrow_balance(escrow_owner_note.commitment, amount)
             .enqueue(&mut context);
 
-        // transfer tokens to provider's private balance
+        // transfer tokens to escrow owner's private balance
         OpenbankingEscrow::at(context.this_address())
             ._withdraw_tokens(context.msg_sender(), amount)
             .call(&mut context);
@@ -199,7 +199,7 @@ contract OpenbankingEscrow {
         );
         // also assert not 0
         // assert withdrawable amount doesn't exceed balance
-        assert(amount <= escrow_balance.balance, "Amount exceeds provider balance.");
+        assert(amount <= escrow_balance.balance, "Amount exceeds escrow balance.");
 
         let updated_escrow_balance = EscrowBalance {
             balance: escrow_balance.balance - amount,

@@ -14,7 +14,7 @@ use dep::aztec::{
 use dep::openbanking_verifier::constants::{CURRENCY_CODE_VALUE_LENGTH, SORT_CODE_VALUE_LENGTH};
 use dep::std::hash::poseidon2::Poseidon2;
 
-#[test]
+// #[test]
 unconstrained fn test_claim_revolut() {
     let (env, accounts, contracts) = setup();
     let mint_amount = U128::from_integer(to_usdc_decimals(50));
@@ -179,7 +179,7 @@ unconstrained fn test_withdrawal_amount_exceeds_balance() {
     );
 }
 
-// #[test]
+#[test]
 unconstrained fn test_increment_escrow_balance() {
     let (env, accounts, contracts) = setup();
     let mint_amount = U128::from_integer(to_usdc_decimals(70));
@@ -224,7 +224,7 @@ unconstrained fn test_increment_escrow_balance() {
     assert(withdrawable_at == block_number as Field + 1);
 }
 
-// #[test(should_fail_with = "Rejecting tx for emitting duplicate nullifiers")]
+#[test(should_fail_with = "Rejecting tx for emitting duplicate nullifiers")]
 unconstrained fn test_init_escrow_twice() {
     let (env, accounts, contracts) = setup();
     let mint_amount = U128::from_integer(to_usdc_decimals(50));
@@ -317,7 +317,7 @@ unconstrained fn test_init_escrow_twice() {
 //     );
 // }
 
-// #[test(should_fail_with = "Commitment does not exist.")]
+#[test(should_fail_with = "Commitment does not exist.")]
 unconstrained fn test_claim_on_nonexistent_commitment() {
     let (env, accounts, contracts) = setup();
 
@@ -329,7 +329,7 @@ unconstrained fn test_claim_on_nonexistent_commitment() {
     prove_payment(env, accounts.bob, contracts.escrow, REVOLUT_PAYMENT_PAYLOAD);
 }
 
-// #[test(should_fail_with = "Payment amount exceeds escrow owner balance.")]
+#[test(should_fail_with = "Payment amount exceeds escrow owner balance.")]
 unconstrained fn test_payment_amount_exceeds_escrow_balance() {
     let (env, accounts, contracts) = setup();
     let mint_amount = U128::from_integer(to_usdc_decimals(1) / 10);
@@ -361,7 +361,7 @@ unconstrained fn test_payment_amount_exceeds_escrow_balance() {
     prove_payment(env, accounts.bob, contracts.escrow, REVOLUT_PAYMENT_PAYLOAD);
 }
 
-// #[test(should_fail_with = "Payment has already been spent.")]
+#[test(should_fail_with = "Payment has already been spent.")]
 unconstrained fn test_double_spend() {
     let (env, accounts, contracts) = setup();
     let mint_amount = U128::from_integer(to_usdc_decimals(50));

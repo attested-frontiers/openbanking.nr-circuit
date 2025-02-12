@@ -28,7 +28,7 @@ describe('OpenBanking.nr Circuit Test', () => {
   });
 
   describe('Simulate Witnesses', () => {
-    xit('Test execution', async () => {
+    it('Test execution', async () => {
       const inputs = generateNoirInputs(payload, signature, publicKey);
       const result = await noir.execute({ params: inputs });
       const outputs = decodeNoirOutputs(result.returnValue);
@@ -43,7 +43,7 @@ describe('OpenBanking.nr Circuit Test', () => {
       };
       expect(outputs).toEqual(expectedOutputs);
     });
-    it('CA', async () => {
+    xit('CA', async () => {
       const hashes = await getPubkeyHashes(REVOLUT_JWKS_URI).then(hashes => hashes.map(hash => hash.toString()));
       const expectedHashes = [
         "0x122fe470d24a14ba2e21e27225df5897b36e91e4ac6f62e022d4b901331b9ade",

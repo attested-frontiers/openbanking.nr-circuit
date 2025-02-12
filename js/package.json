@@ -4,13 +4,16 @@
   "main": "dist",
   "types": "dist",
   "license": "MIT",
+  "type": "module",
   "scripts": {
     "build": "tsc",
     "test": "jest",
     "lint": "eslint .",
-    "prepublishOnly": "yarn lint && yarn build"
+    "prepublishOnly": "yarn lint && yarn build",
+    "deploy": "node --loader ts-node/esm src/deploy.ts"
   },
   "dependencies": {
+    "@aztec/accounts": "=0.75.0",
     "@aztec/bb.js": "=0.75.0",
     "@aztec/noir-contracts.js": "=0.75.0",
     "@mach-34/noir-bignum-paramgen": "^1.1.2",

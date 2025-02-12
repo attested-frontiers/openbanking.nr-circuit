@@ -15,6 +15,20 @@
     "@jridgewell/gen-mapping" "^0.3.5"
     "@jridgewell/trace-mapping" "^0.3.24"
 
+"@aztec/accounts@0.75.0":
+  version "0.75.0"
+  resolved "https://registry.yarnpkg.com/@aztec/accounts/-/accounts-0.75.0.tgz#0b52b012df45d84ca6701f2f510626b026635406"
+  integrity sha512-6raGcrZRZjZVtvWMXbFVN2jZKasjvxUFpWKJmmEDkjDig6L8Epng0xt/2OCtKUSbe/iIUu0WYHoVcTAUlTti8w==
+  dependencies:
+    "@aztec/aztec.js" "0.75.0"
+    "@aztec/circuit-types" "0.75.0"
+    "@aztec/circuits.js" "0.75.0"
+    "@aztec/entrypoints" "0.75.0"
+    "@aztec/ethereum" "0.75.0"
+    "@aztec/foundation" "0.75.0"
+    "@aztec/types" "0.75.0"
+    tslib "^2.4.0"
+
 "@aztec/aztec.js@0.75.0":
   version "0.75.0"
   resolved "https://registry.yarnpkg.com/@aztec/aztec.js/-/aztec.js-0.75.0.tgz#da833fd02313ff9865d74e1e6521518480052777"
@@ -71,6 +85,18 @@
     msgpackr "^1.11.2"
     tslib "^2.4.0"
     zod "^3.23.8"
+
+"@aztec/entrypoints@0.75.0":
+  version "0.75.0"
+  resolved "https://registry.yarnpkg.com/@aztec/entrypoints/-/entrypoints-0.75.0.tgz#0968c4e7f75b8e3ce1d086cd1ce709c4dcc7bc20"
+  integrity sha512-WHNvdNIwBQ9AZ6XBglEPSOCmqjeTvA899HGtqFCcCfzCRx1DlSFylnJ2tgBLSd1C87JbOduZTVMH3hLZOscAbg==
+  dependencies:
+    "@aztec/aztec.js" "0.75.0"
+    "@aztec/circuit-types" "0.75.0"
+    "@aztec/circuits.js" "0.75.0"
+    "@aztec/foundation" "0.75.0"
+    "@aztec/protocol-contracts" "0.75.0"
+    tslib "^2.4.0"
 
 "@aztec/ethereum@0.75.0":
   version "0.75.0"

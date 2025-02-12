@@ -23,7 +23,7 @@ contract OpenbankingEscrow {
         oracle::debug_log::debug_log_format,
         encrypted_logs::log_assembly_strategies::default_aes128::note::encode_and_encrypt_note,
         macros::{
-            functions::{initializer, internal, private, public},
+            functions::{initializer, internal, private, public, view},
             storage::storage
         },
         prelude::{ AztecAddress, Map, PrivateMutable, PublicImmutable, PublicMutable},
@@ -255,5 +255,13 @@ contract OpenbankingEscrow {
         storage.escrow_balances.at(commitment).write(escrow_balance);
     }
 
-    
+    #[public]
+    #[view]
+    fn get_escrow_liqudity_position(commitment: Field) -> EscrowBalance {
+        storage.escrow_balances.at(commitment).read()
+    }
+
+    unconstrained fn get_escrow_owner_note(scope: AztecAddress) -> EscrowOwnerNote {
+        storage.escrow_owners.at(scope).view_note()
+    }
 }

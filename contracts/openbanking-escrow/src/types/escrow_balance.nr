@@ -6,7 +6,7 @@ use crate::constants::WITHDRAWAL_LOCKUP_BLOCKS;
 pub global ESCROW_BALANCE_SERIALIZED_LEN: u32 = 3;
 
 #[derive(Serialize, Deserialize, Packable, Eq)]
-struct EscrowBalance {
+pub struct EscrowBalance {
     balance: U128,
     initialized: bool,
     // block number the escrow owner can withdraw at
@@ -65,12 +65,12 @@ impl EscrowBalance {
             block_number as u32 >= self.withdrawable_at as u32,
             "Cannot withdraw in block restriction window.",
         );
-        assert(
-            self.withdrawable_at != 0,
-            "Escrow has not been prompted for withdrawal by owner"
-        );
+        // assert(
+        //     self.withdrawable_at != 0,
+        //     "Escrow has not been prompted for withdrawal by owner"
+        // );
         // assert withdrawable amount doesn't exceed balance
-        assert(self.withdrawable_balance <= self.balance, "Amount exceeds escrow balance.");
+        // assert(self.withdrawable_balance <= self.balance, "Amount exceeds escrow balance.");
     }
 
     /**

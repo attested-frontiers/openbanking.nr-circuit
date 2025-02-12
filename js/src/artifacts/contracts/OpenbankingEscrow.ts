@@ -109,24 +109,21 @@ export class OpenbankingEscrowContract extends ContractBase {
   }
 
 
-  public static get storage(): ContractStorageLayout<'escrow_owners' | 'escrow_balances' | 'spent_payments' | 'config' | 'pubkey_registry'> {
+  public static get storage(): ContractStorageLayout<'config' | 'escrow_owners' | 'escrow_balances' | 'pubkey_registry'> {
     return {
-      escrow_owners: {
+      config: {
         slot: new Fr(1n),
       },
-      escrow_balances: {
-        slot: new Fr(2n),
-      },
-      spent_payments: {
-        slot: new Fr(3n),
-      },
-      config: {
+      escrow_owners: {
         slot: new Fr(4n),
       },
+      escrow_balances: {
+        slot: new Fr(5n),
+      },
       pubkey_registry: {
-        slot: new Fr(7n),
+        slot: new Fr(6n),
       }
-    } as ContractStorageLayout<'escrow_owners' | 'escrow_balances' | 'spent_payments' | 'config' | 'pubkey_registry'>;
+    } as ContractStorageLayout<'config' | 'escrow_owners' | 'escrow_balances' | 'pubkey_registry'>;
   }
 
 
@@ -154,6 +151,12 @@ export class OpenbankingEscrowContract extends ContractBase {
     /** constructor(token_address: struct, key_hashes: array) */
     constructor: ((token_address: AztecAddressLike, key_hashes: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
+    /** get_escrow_liqudity_position(commitment: field) */
+    get_escrow_liqudity_position: ((commitment: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** get_escrow_owner_note(scope: struct) */
+    get_escrow_owner_note: ((scope: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
     /** increment_escrow_balance(amount: struct) */
     increment_escrow_balance: ((amount: U128Like) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
@@ -162,6 +165,9 @@ export class OpenbankingEscrowContract extends ContractBase {
 
     /** process_log(log_plaintext: struct, tx_hash: field, unique_note_hashes_in_tx: struct, first_nullifier_in_tx: field, recipient: struct) */
     process_log: ((log_plaintext: { storage: FieldLike[], len: (bigint | number) }, tx_hash: FieldLike, unique_note_hashes_in_tx: { storage: FieldLike[], len: (bigint | number) }, first_nullifier_in_tx: FieldLike, recipient: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** prompt_withdraw_escrow_balance(amount: struct) */
+    prompt_withdraw_escrow_balance: ((amount: U128Like) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** prove_payment_and_claim(openbanking_params: struct) */
     prove_payment_and_claim: ((openbanking_params: { signature_limbs: FieldLike[], modulus_limbs: FieldLike[], redc_limbs: FieldLike[], partial_hash_start: (bigint | number)[], header_delimiter_index: (bigint | number), payload: (bigint | number)[], payload_length: (bigint | number) }) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

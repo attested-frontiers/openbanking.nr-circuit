@@ -1,4 +1,4 @@
-use crate::{OpenbankingEscrow, types::{escrow_balance::EscrowBalance, OpenbankingVerifierParamsContract}};
+use crate::{OpenbankingEscrow, types::{escrow_balance::EscrowBalance, openbanking::OpenbankingVerifierParamsContract}};
 use authwit::cheatcodes as authwit_cheatcodes;
 use aztec::{
     oracle::{execution::{get_block_number, get_contract_address}, storage::storage_read, random::random},
@@ -82,6 +82,23 @@ pub unconstrained fn prove_payment(
     let escrow = OpenbankingEscrow::at(escrow_address);
     let _ = escrow.prove_payment_and_claim(payment_params).call(&mut env.private());
     cheatcodes::advance_blocks_by(1);
+}
+
+pub unconstrained fn prompt_withdrawal(
+    env: &mut TestEnvironment,
+    escrow_owner: AztecAddress,
+    escrow_address: AztecAddress,
+    amount: U128,
+    advance: bool
+) {
+    env.impersonate(escrow_owner);
+    let escrow = OpenbankingEscrow::at(escrow_address);
+    let _ = escrow.prompt_withdraw_escrow_balance(amount).call(&mut env.private());
+    let mut blocks_to_advance = 1;
+    if advance {
+        blocks_to_advance += 1;
+    }
+    cheatcodes::advance_blocks_by(blocks_to_advance);
 }
 
 pub unconstrained fn withdraw(

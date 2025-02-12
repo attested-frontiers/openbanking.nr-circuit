@@ -1,0 +1,2 @@
+pub global MAX_KEY_HASHES_PER_TX: u32 = 4;
+pub global WITHDRAWAL_LOCKUP_BLOCKS: u32 = 2;

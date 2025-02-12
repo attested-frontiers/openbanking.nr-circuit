@@ -182,8 +182,14 @@ contract OpenbankingEscrow {
     fn withdraw_escrow_balance(amount: U128) {
         let escrow_owner = context.msg_sender();
         // TODO: Perform check that note exists
-        let escrow_owner_note = storage.escrow_owners.at(escrow_owner).get_note().note;
+        let mut escrow_owner_note = storage.escrow_owners.at(escrow_owner).get_note().note;
         assert(escrow_owner_note.owner == escrow_owner, "Cannot use escrow owner note");
+        storage.escrow_owners.at(escrow_owner).replace(&mut escrow_owner_note).emit(
+            encode_and_encrypt_note(
+            &mut context,
+            escrow_owner,
+            escrow_owner,
+        ));
 
         // decrement escrow balance in escrow
         OpenbankingEscrow::at(context.this_address())

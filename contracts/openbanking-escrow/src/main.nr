@@ -126,6 +126,8 @@ contract OpenbankingEscrow {
 
     #[private]
     fn prove_payment_and_claim(openbanking_params: OpenbankingVerifierParamsContract) {
+        // let escrow_owner_note = storage.escrow_owners.at(context.msg_sender()).get_note().note;
+        // assert(escrow_owner_note.owner == context.msg_sender(), "Cannot use escrow owner note");
         // prove openbanking payment
         let result: OpenbankingVerifierReturn = verify_openbanking_payment(openbanking_params.marshal());
 
@@ -180,15 +182,15 @@ contract OpenbankingEscrow {
 
     #[private]
     fn withdraw_escrow_balance(amount: U128) {
-        let escrow_owner = context.msg_sender();
-        // TODO: Perform check that note exists
-        let escrow_owner_note = storage.escrow_owners.at(escrow_owner).get_note().note;
-        assert(escrow_owner_note.owner == escrow_owner, "Cannot use escrow owner note");
+        // let escrow_owner = context.msg_sender();
+        // // TODO: Perform check that note exists
+        // let escrow_owner_note = storage.escrow_owners.at(escrow_owner).get_note().note;
+        // assert(escrow_owner_note.owner == escrow_owner, "Cannot use escrow owner note");
 
-        // decrement escrow balance in escrow
-        OpenbankingEscrow::at(context.this_address())
-            ._decrement_escrow_balance(escrow_owner_note.commitment, amount)
-            .enqueue(&mut context);
+        // // decrement escrow balance in escrow
+        // OpenbankingEscrow::at(context.this_address())
+        //     ._decrement_escrow_balance(escrow_owner_note.commitment, amount)
+        //     .enqueue(&mut context);
 
         // transfer tokens to escrow owner's private balance
         withdraw_tokens(

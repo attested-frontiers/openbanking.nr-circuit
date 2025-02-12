@@ -3,8 +3,6 @@ use std::meta::derive;
 
 use crate::constants::WITHDRAWAL_LOCKUP_BLOCKS;
 
-pub global ESCROW_BALANCE_SERIALIZED_LEN: u32 = 3;
-
 #[derive(Serialize, Deserialize, Packable, Eq)]
 struct EscrowBalance {
     balance: U128,

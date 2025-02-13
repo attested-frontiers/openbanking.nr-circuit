@@ -27,6 +27,7 @@ contract OpenbankingEscrow {
             storage::storage
         },
         prelude::{ AztecAddress, Map, PrivateMutable, PublicImmutable, PublicMutable},
+        note::note_getter::MAX_NOTES_PER_PAGE,
     };
     use openbanking_verifier::{
         io::OpenbankingVerifierReturn,
@@ -271,10 +272,21 @@ contract OpenbankingEscrow {
         storage.escrow_balances.at(commitment).write(escrow_balance);
     }
 
-    #[public]
-    #[view]
-    fn get_escrow_liqudity_position(commitment: Field) -> EscrowBalance {
-        storage.escrow_balances.at(commitment).read()
+
+    unconstrained fn get_escrow_liqudity_position(commitments: BoundedVec<Field, MAX_NOTES_PER_PAGE>) -> BoundedVec<Option<EscrowBalance>, MAX_NOTES_PER_PAGE> {
+        let mut balances = BoundedVec::new();
+        for i in 0..MAX_NOTES_PER_PAGE {
+            let balance = storage.escrow_balances.at(commitments.get_unchecked(i)).read();
+            let mut value = Option::none();
+            if balance.initialized {
+                value = Option::some(balance);
+            }
+            // todo: could theoretically optimize by building vec manually rather than optimized pushing, but probably not used in constrained context ever
+            if i < commitments.len() {
+                balances.push(value);
+            }
+        }
+        balances
     }
 
     unconstrained fn get_escrow_owner_note(scope: AztecAddress) -> Option<EscrowOwnerNote> {

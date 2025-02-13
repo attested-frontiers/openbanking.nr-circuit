@@ -151,8 +151,8 @@ EscrowOwnerNote: {
     /** constructor(token_address: struct, key_hashes: array) */
     constructor: ((token_address: AztecAddressLike, key_hashes: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** get_escrow_liqudity_position(commitment: field) */
-    get_escrow_liqudity_position: ((commitment: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** get_escrow_liqudity_position(commitments: struct) */
+    get_escrow_liqudity_position: ((commitments: { storage: FieldLike[], len: (bigint | number) }) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** get_escrow_owner_note(scope: struct) */
     get_escrow_owner_note: ((scope: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

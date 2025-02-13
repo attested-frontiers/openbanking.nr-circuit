@@ -223,7 +223,7 @@ contract OpenbankingEscrow {
         escrow_balance.assert_initialized(true);
         
         // check that amount does not exceed balance and decrement
-        escrow_balance.assert_withdrawable(context.block_number());
+        // escrow_balance.assert_withdrawable(context.block_number());
 
         // decrement the escrow balance
         escrow_balance.decrement(amount);

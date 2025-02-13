@@ -19,7 +19,7 @@ NOIRUP_URL="https://raw.githubusercontent.com/noir-lang/noirup/main/install"
 BBUP_URL="https://raw.githubusercontent.com/AztecProtocol/aztec-packages/refs/heads/master/barretenberg/bbup/install"
 EXPECTED_NARGO_VERSION="1.0.0-beta.1"
 EXPECTED_BB_VERSION="0.66.0"
-EXPECTED_AZTEC_VERSION="0.75.0"
+EXPECTED_AZTEC_VERSION="0.76.1"
 
 ## Set the SED utility depending on OSX or Linix
 if command -v gsed &> /dev/null

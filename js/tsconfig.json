@@ -19,10 +19,7 @@
     "incremental": true,
     "outDir": "dist",
     "tsBuildInfoFile": "./.tsbuildinfo",
-    "paths": {
-      "@aztec/foundation/*": ["./node_modules/@aztec/foundation/dest/*"]
-    }
   },
-  "include": ["src/**/*", "tests/**/*", "README.md", "LICENSE"],
+  "include": ["src/**/*", "README.md", "LICENSE"],
   "exclude": ["dist", "node_modules"]
 }

@@ -1,10 +1,10 @@
 use dep::openbanking_verifier::{
-    constants::{
-        MAX_AMOUNT_VALUE_LENGTH, MAX_PAYLOAD_LENGTH, OpenbankingVerifierParams,
-        OpenbankingVerifierReturn,
-    },
-    verify::{partial_sha256_var_start, verify_openbanking_payment},
+    constants::{MAX_AMOUNT_VALUE_LENGTH, MAX_PAYLOAD_LENGTH,},
+    verify::verify_openbanking_payment,
+    io::{OpenbankingVerifierParams, OpenbankingVerifierReturn}
 };
+use zkemail::partial_hash::{partial_sha256_var_start, partial_sha256_var_end};
+
 
 fn main(params: OpenbankingVerifierParams) -> pub OpenbankingVerifierReturn {
     verify_openbanking_payment(params)

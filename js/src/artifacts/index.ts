@@ -1,5 +1,6 @@
-import OpenBankingDomesticCircuit from "./circuit/openbanking_domestic.json";
-
+import OpenBankingDomesticCircuit from "./circuits/openbanking_domestic.json";
+import { OpenbankingEscrowContract } from "./contracts/OpenbankingEscrow";
 export {
-    OpenBankingDomesticCircuit
+    OpenBankingDomesticCircuit,
+    OpenbankingEscrowContract
 };

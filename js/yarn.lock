@@ -15,7 +15,7 @@
     "@jridgewell/gen-mapping" "^0.3.5"
     "@jridgewell/trace-mapping" "^0.3.24"
 
-"@aztec/accounts@0.75.0":
+"@aztec/accounts@=0.75.0":
   version "0.75.0"
   resolved "https://registry.yarnpkg.com/@aztec/accounts/-/accounts-0.75.0.tgz#0b52b012df45d84ca6701f2f510626b026635406"
   integrity sha512-6raGcrZRZjZVtvWMXbFVN2jZKasjvxUFpWKJmmEDkjDig6L8Epng0xt/2OCtKUSbe/iIUu0WYHoVcTAUlTti8w==
@@ -45,7 +45,7 @@
     tslib "^2.4.0"
     viem "2.22.8"
 
-"@aztec/bb.js@0.75.0", "@aztec/bb.js@=0.75.0":
+"@aztec/bb.js@0.75.0":
   version "0.75.0"
   resolved "https://registry.yarnpkg.com/@aztec/bb.js/-/bb.js-0.75.0.tgz#d2069e1cc3fb36ade9dfa79bcdb5ef59018f9347"
   integrity sha512-Kw61Hv75HLmT9pUo+ebKA6vj5Dnb+6ZNkECX6P05RcvmAZKO1hXW2hA+k5JVEVEv/VJf+G+Hjd1Z6ir66DyGCA==
@@ -952,7 +952,7 @@
     "@babel/helper-create-regexp-features-plugin" "^7.25.9"
     "@babel/helper-plugin-utils" "^7.25.9"
 
-"@babel/preset-env@^7.25.4":
+"@babel/preset-env@^7.26.8":
   version "7.26.8"
   resolved "https://registry.yarnpkg.com/@babel/preset-env/-/preset-env-7.26.8.tgz#7af0090829b606d2046db99679004731e1dc364d"
   integrity sha512-um7Sy+2THd697S4zJEfv/U5MHGJzkN2xhtsR3T/SWRbVSic62nbISh51VVfU9JiO/L/Z97QczHTaFVkOU8IzNg==
@@ -1036,7 +1036,7 @@
     "@babel/types" "^7.4.4"
     esutils "^2.0.2"
 
-"@babel/preset-typescript@^7.24.7":
+"@babel/preset-typescript@^7.26.0":
   version "7.26.0"
   resolved "https://registry.yarnpkg.com/@babel/preset-typescript/-/preset-typescript-7.26.0.tgz#4a570f1b8d104a242d923957ffa1eaff142a106d"
   integrity sha512-NMk1IGZ5I/oHhoXEElcm+xUnL/szL6xflkFZmoEU9xj1qSJXpiS7rsspYo92B4DRCDvZn2erT5LdsCeXAKNCkg==

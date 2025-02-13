@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@aztec/accounts": "=0.75.0",
-    "@aztec/bb.js": "=0.75.0",
     "@aztec/noir-contracts.js": "=0.75.0",
     "@mach-34/noir-bignum-paramgen": "^1.1.2",
     "@noir-lang/noir_js": "=1.0.0-beta.1",
@@ -26,8 +25,9 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
-    "@babel/preset-env": "^7.25.4",
-    "@babel/preset-typescript": "^7.24.7",
+    "@babel/plugin-syntax-import-assertions": "^7.26.0",
+    "@babel/preset-env": "^7.26.8",
+    "@babel/preset-typescript": "^7.26.0",
     "@types/jest": "^29.5.14",
     "@types/mocha": "^10.0.8",
     "@types/node": "^22.13.1",
@@ -53,16 +53,6 @@
     "LICENSE",
     "README.md"
   ],
-  "jest": {
-    "roots": [
-      "<rootDir>"
-    ],
-    "testPathIgnorePatterns": [
-      "/dist/",
-      "/node_modules/"
-    ],
-    "testTimeout": 10000000
-  },
   "babel": {
     "presets": [
       [
@@ -73,10 +63,21 @@
           }
         }
       ],
-      "@babel/preset-typescript",
+      [
+        "@babel/preset-typescript",
+        {
+          "allowDeclareFields": true,
+          "parserPlugins": [
+            "deprecatedImportAssert"
+          ]
+        }
+      ],
       [
         "jest"
       ]
+    ],
+    "plugins": [
+      "@babel/plugin-syntax-import-assertions"
     ]
   },
   "eslintConfig": {

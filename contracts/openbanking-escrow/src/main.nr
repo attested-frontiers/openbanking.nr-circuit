@@ -238,7 +238,7 @@ contract OpenbankingEscrow {
     fn _increment_escrow_balance(commitment: Field, amount: U128) {
         // check that escrow exists for the commitment
         let mut escrow_balance = storage.escrow_balances.at(commitment).read();
-        escrow_balance.assert_initialized(false);
+        escrow_balance.assert_initialized(true);
 
         // deposit funds into the escrow balance
         escrow_balance.deposit(amount);

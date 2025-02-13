@@ -32,7 +32,7 @@ impl EscrowBalance {
      * @param initialized: whether the escrow balance is initialized
      */
     pub fn assert_initialized(self, initialized: bool) {
-        assert(self.initialized == initialized, "Commitment does not exist.");
+        assert(self.initialized == initialized, f"Commitment initialization should be {initialized}");
     }
 
     /**

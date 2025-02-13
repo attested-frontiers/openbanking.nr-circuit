@@ -148,6 +148,7 @@ ts_artifacts() {
     # Build the library from ts to js
     cd $SCRIPT_DIR/../js
     echo "Building JS library..."
+    rm -rf $SCRIPTS_DIR/../js/.tsbuildinfo
     rm -rf $SCRIPT_DIR/../js/dist
     $node_package_installer run build
 }
@@ -182,7 +183,7 @@ case "$1" in
         echo -e "   ${GREEN}✓${NC}   Saved OpenBanking Domestic Payment Circuit ACIR to ${ORANGE}$ARTIFACTS_PATH/circuits/openbanking_domestic.json${NC}"
         ;;
     "contract-artifacts")
-        compile_contracts
+        # compile_contracts
         ts_artifacts
         echo "Summary:"
         echo -e "   ${GREEN}✓${NC}   Saved OpenBanking Escrow Contract ACIR to ${ORANGE}$CONTRACT_ACIR_PATH${NC}"

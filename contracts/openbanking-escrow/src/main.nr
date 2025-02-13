@@ -277,7 +277,11 @@ contract OpenbankingEscrow {
         storage.escrow_balances.at(commitment).read()
     }
 
-    unconstrained fn get_escrow_owner_note(scope: AztecAddress) -> EscrowOwnerNote {
-        storage.escrow_owners.at(scope).view_note()
+    unconstrained fn get_escrow_owner_note(scope: AztecAddress) -> Option<EscrowOwnerNote> {
+        if storage.escrow_owners.at(scope).is_initialized() {
+            Option::some(storage.escrow_owners.at(scope).view_note())
+        } else {
+            Option::none()
+        }
     }
 }

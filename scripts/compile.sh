@@ -44,12 +44,23 @@ show_help() {
     echo "Usage: $0 [option]"
     echo "Options:"
     echo -e "  ${ORANGE}all${NC}                 Compile circuit & contract ACIRs, ts artifact for contract, and add to js artifact dir"
-    echo -e "  ${ORANGE}contracts${NC}           Compile only the contract ACIR (TXE, won't put in js artifacts dir)"
     echo -e "  ${ORANGE}circuits${NC}            Compile only the circuit ACIR"
-    echo -e "  ${ORANGE}contract-artifacts${NC}  Compile the contract ACIR and add to js artifact dir"
+    echo -e "  ${ORANGE}contracts${NC}           Compile only the contract ACIR (TXE, won't put in js artifacts dir)"
+    echo -e "  ${ORANGE}typescript${NC}          Generate TS bindings for the contract and build the ts library into JS"
+    echo -e "  ${ORANGE}contract-artifacts${NC}  Compile the contract ACIR, generate TS bindings, and build the ts library into JS"
     exit 1
 }
 
+check_gsed() {
+   # Only check on macOS
+   if [[ "$(uname)" == "Darwin" ]]; then
+       if ! command -v gsed &> /dev/null; then
+           echo -e "${RED}ERROR: gsed not found!${NC}"
+           echo -e "${BLUE}sed${NC} commands from this script will not work on mac natively - run ${ORANGE}brew install gnu-sed${NC} before proceeding"
+           exit 1
+       fi
+   fi
+}
 
 ### Dependencies Check
 check_installer() {
@@ -134,6 +145,9 @@ compile_contracts() {
 }
 
 ts_artifacts() {
+    # Ensure the sed commands will pass
+    check_gsed
+
     # Generate TS artifact
     echo "Generating TypeScript interface for OpenBanking Escrow Contract..."
     cd $SCRIPT_DIR/../contracts/openbanking-escrow
@@ -183,12 +197,18 @@ case "$1" in
         echo -e "   ${GREEN}✓${NC}   Saved OpenBanking Domestic Payment Circuit ACIR to ${ORANGE}$ARTIFACTS_PATH/circuits/openbanking_domestic.json${NC}"
         ;;
     "contract-artifacts")
-        # compile_contracts
+        compile_contracts
         ts_artifacts
         echo "Summary:"
         echo -e "   ${GREEN}✓${NC}   Saved OpenBanking Escrow Contract ACIR to ${ORANGE}$CONTRACT_ACIR_PATH${NC}"
         echo -e "   ${GREEN}✓${NC}   Copied Token Contract ACIR to ${ORANGE}$TXE_TOKEN_PATH${NC} for TXE"
         echo -e "   ${GREEN}✓${NC}   Copied OpenBanking Escrow Contract ACIR to ${ORANGE}$ARTIFACTS_PATH/contracts/openbanking_escrow.json${NC}"
+        echo -e "   ${GREEN}✓${NC}   Saved OpenBanking TS/JS Interface to ${ORANGE}$ARTIFACTS_PATH/contracts/OpenBanking.ts${NC}"
+        echo -e "   ${GREEN}✓${NC}   Compiled TS library to JS library - add ${ORANGE}\"@openbanking.nr/js-inputs": "file:$SCRIPT_DIR/../js\",${NC} to your package.json dependencies to import"
+        ;;
+    "typescript")
+        ts_artifacts
+        echo "Summary:"
         echo -e "   ${GREEN}✓${NC}   Saved OpenBanking TS/JS Interface to ${ORANGE}$ARTIFACTS_PATH/contracts/OpenBanking.ts${NC}"
         echo -e "   ${GREEN}✓${NC}   Compiled TS library to JS library - add ${ORANGE}\"@openbanking.nr/js-inputs": "file:$SCRIPT_DIR/../js\",${NC} to your package.json dependencies to import"
         ;;

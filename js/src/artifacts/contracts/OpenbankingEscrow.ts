@@ -35,7 +35,7 @@ import {
   type U128Like,
   type WrappedFieldLike,
 } from '@aztec/aztec.js';
-import OpenbankingEscrowContractArtifactJson from './openbanking_escrow-OpenbankingEscrow.json' assert { type: 'json' };
+import OpenbankingEscrowContractArtifactJson from '../../../../contracts/openbanking-escrow/target/openbanking_escrow-OpenbankingEscrow.json' assert { type: 'json' };
 export const OpenbankingEscrowContractArtifact = loadContractArtifact(OpenbankingEscrowContractArtifactJson as NoirCompiledContract);
 
 
@@ -44,16 +44,16 @@ export const OpenbankingEscrowContractArtifact = loadContractArtifact(Openbankin
  * Type-safe interface for contract OpenbankingEscrow;
  */
 export class OpenbankingEscrowContract extends ContractBase {
-
+  
   private constructor(
     instance: ContractInstanceWithAddress,
     wallet: Wallet,
   ) {
     super(instance, OpenbankingEscrowContractArtifact, wallet);
   }
+  
 
-
-
+  
   /**
    * Creates a contract instance.
    * @param address - The deployed contract's address.
@@ -67,7 +67,7 @@ export class OpenbankingEscrowContract extends ContractBase {
     return Contract.at(address, OpenbankingEscrowContract.artifact, wallet) as Promise<OpenbankingEscrowContract>;
   }
 
-
+  
   /**
    * Creates a tx to deploy a new instance of this contract.
    */
@@ -98,50 +98,50 @@ export class OpenbankingEscrowContract extends ContractBase {
       opts.method ?? 'constructor',
     );
   }
+  
 
-
-
+  
   /**
    * Returns this contract's artifact.
    */
   public static get artifact(): ContractArtifact {
     return OpenbankingEscrowContractArtifact;
   }
-
+  
 
   public static get storage(): ContractStorageLayout<'config' | 'escrow_owners' | 'escrow_balances' | 'pubkey_registry'> {
-    return {
-      config: {
-        slot: new Fr(1n),
-      },
-      escrow_owners: {
-        slot: new Fr(4n),
-      },
-      escrow_balances: {
-        slot: new Fr(5n),
-      },
-      pubkey_registry: {
-        slot: new Fr(6n),
-      }
-    } as ContractStorageLayout<'config' | 'escrow_owners' | 'escrow_balances' | 'pubkey_registry'>;
-  }
-
+      return {
+        config: {
+      slot: new Fr(1n),
+    },
+escrow_owners: {
+      slot: new Fr(4n),
+    },
+escrow_balances: {
+      slot: new Fr(5n),
+    },
+pubkey_registry: {
+      slot: new Fr(6n),
+    }
+      } as ContractStorageLayout<'config' | 'escrow_owners' | 'escrow_balances' | 'pubkey_registry'>;
+    }
+    
 
   public static get notes(): ContractNotes<'UintNote' | 'EscrowOwnerNote'> {
     return {
       UintNote: {
-        id: new NoteSelector(0),
-      },
-      EscrowOwnerNote: {
-        id: new NoteSelector(1),
-      }
+          id: new NoteSelector(0),
+        },
+EscrowOwnerNote: {
+          id: new NoteSelector(1),
+        }
     } as ContractNotes<'UintNote' | 'EscrowOwnerNote'>;
   }
-
+  
 
   /** Type-safe wrappers for the public methods exposed by the contract. */
   public declare methods: {
-
+    
     /** add_key_hashes(key_hashes: array) */
     add_key_hashes: ((key_hashes: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
@@ -182,5 +182,5 @@ export class OpenbankingEscrowContract extends ContractBase {
     withdraw_escrow_balance: ((amount: U128Like) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
   };
 
-
+  
 }

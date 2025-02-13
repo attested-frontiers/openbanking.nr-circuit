@@ -1,229 +1,307 @@
 use dep::aztec::macros::aztec;
 
-mod types;
+mod constants;
+mod library_functions;
 mod test;
+mod types;
 mod utils;
 
 #[aztec]
 contract OpenbankingEscrow {
 
     use crate::{
-        types::{provider_balance::ProviderBalance, provider_note::ProviderNote},
-        utils::{bytes_to_num, pack_bytes},
-    };
-    use dep::aztec::{
-        encrypted_logs::encrypted_note_emission::encode_and_encrypt_note,
-        macros::{functions::{initializer, internal, private, public, view}, storage::storage},
-        prelude::{
-            AztecAddress, FunctionSelector, Map, PrivateMutable, PublicImmutable, PublicMutable,
+        types::{
+            escrow_balance::EscrowBalance,
+            openbanking::OpenbankingVerifierParamsContract,
+            escrow_owner_note::EscrowOwnerNote,
+            config::Config
         },
-        protocol_types::utils::field::field_from_bytes,
+        constants::MAX_KEY_HASHES_PER_TX,
+        library_functions::withdraw_tokens
     };
-    use dep::openbanking_verifier::{
-        constants::{
-            CURRENCY_CODE_VALUE_LENGTH, MAX_AMOUNT_VALUE_LENGTH, OpenbankingVerifierParamsContract,
-            OpenbankingVerifierReturn, PAYMENT_ID_LENGTH, SORT_CODE_VALUE_LENGTH,
+    use aztec::{
+        oracle::debug_log::debug_log_format,
+        encrypted_logs::log_assembly_strategies::default_aes128::note::encode_and_encrypt_note,
+        macros::{
+            functions::{initializer, internal, private, public, view},
+            storage::storage
         },
+        prelude::{ AztecAddress, Map, PrivateMutable, PublicImmutable, PublicMutable},
+        note::note_getter::MAX_NOTES_PER_PAGE,
+    };
+    use openbanking_verifier::{
+        io::OpenbankingVerifierReturn,
         verify::verify_openbanking_payment,
     };
-    use dep::std::hash::poseidon2::Poseidon2;
-    use dep::token::Token;
+    use std::hash::poseidon2::Poseidon2;
+    use token::Token;
 
     #[storage]
     struct Storage<Context> {
-        provider_account: PrivateMutable<ProviderNote, Context>,
-        provider_balances: Map<Field, PublicMutable<ProviderBalance, Context>, Context>,
-        spent_payments: Map<Field, PublicMutable<bool, Context>, Context>,
-        token_contract: PublicImmutable<AztecAddress, Context>,
+        config: PublicImmutable<Config, Context>,
+        escrow_owners: Map<AztecAddress, PrivateMutable<EscrowOwnerNote, Context>, Context>,
+        escrow_balances: Map<Field, PublicMutable<EscrowBalance, Context>, Context>,
+        pubkey_registry: Map<Field, PublicImmutable<bool, Context>, Context>,
     }
 
     #[public]
     #[initializer]
-    fn constructor(token_address: AztecAddress) {
-        storage.token_contract.initialize(token_address);
+    fn constructor(token_address: AztecAddress, key_hashes: [Field; MAX_KEY_HASHES_PER_TX]) {
+        storage.config.initialize(Config::new(token_address, context.msg_sender()));
+        for i in 0..MAX_KEY_HASHES_PER_TX {
+            if key_hashes[i] != 0 {
+                storage.pubkey_registry.at(key_hashes[i]).initialize(true);
+            }
+        }
     }
 
-    #[private]
-    fn increment_provider_balance(amount: U128) {
-        // TODO: Perform check that note exists
-        let provider_account = storage.provider_account.get_note().note;
+    #[public]
+    fn add_key_hashes(key_hashes: [Field; MAX_KEY_HASHES_PER_TX]) {
+        let admin = storage.config.read().admin;
+        assert(admin == context.msg_sender(), "Only admin can add key hashes");
+        for i in 0..MAX_KEY_HASHES_PER_TX {
+            if key_hashes[i] != 0 {
+                storage.pubkey_registry.at(key_hashes[i]).initialize(true);
+            }
+        }
+    }
 
+    // #[public]
+    // fn revoke_key(key_hash: Field) {
+    //     let admin = storage.settings.read().admin;
+    //     assert(admin == context.msg_sender(), "Only admin can revoke keys");
+    //     // todo: should we require the key to be added to remove it? I think no
+    //     let revocation_hash = Poseidon2::hash(key_hash, 1);
+    //     storage.pubkey_registry.at(revocation_hash).initialize(true);
+    //     // todo: can you even tell if a it is initialized? IDT so
+    // }
+
+    #[private]
+    fn increment_escrow_balance(amount: U128) {
+        let escrow_owner = context.msg_sender();
+        let escrow_contract = context.this_address();
+        // TODO: Perform check that note exists
+        let mut escrow_owner_note = storage.escrow_owners.at(escrow_owner).get_note().note;
+        assert(escrow_owner_note.owner == escrow_owner, "Cannot use escrow owner note");
+        storage.escrow_owners.at(escrow_owner).replace(&mut escrow_owner_note).emit(encode_and_encrypt_note(
+            &mut context,
+            escrow_owner,
+            escrow_owner,
+        ));
         // transfer private token balance to public balance of escrow
-        let token_contract = storage.token_contract.read();
-        Token::at(token_contract)
-            .transfer_to_public(context.msg_sender(), context.this_address(), amount, 0)
+        Token::at(storage.config.read().token)
+            .transfer_to_public(escrow_owner, escrow_contract, amount, 0)
             .call(&mut context);
 
-        OpenbankingEscrow::at(context.this_address())
-            ._increment_provider_balance(provider_account.commitment, amount)
+        OpenbankingEscrow::at(escrow_contract)
+            ._increment_escrow_balance(escrow_owner_note.commitment, amount)
             .enqueue(&mut context);
     }
 
     #[private]
-    fn init_provider_balance(
+    fn init_escrow_balance(
         sort_code: Field,
         currency_code: Field,
         amount: U128,
         randomness: Field,
     ) {
+        let escrow_owner = context.msg_sender();
+        let escrow_contract = context.this_address();
         // create commitment
         let commitment = Poseidon2::hash([sort_code, currency_code], 2);
 
-        // init provider note
-        let mut provider_note = ProviderNote::new(commitment, randomness, context.msg_sender());
+        // init escrow owner note
+        let mut escrow_owner_note = EscrowOwnerNote::new(commitment, randomness, escrow_owner);
 
-        storage.provider_account.initialize(&mut provider_note).emit(encode_and_encrypt_note(
+        storage.escrow_owners.at(escrow_owner).initialize(&mut escrow_owner_note).emit(encode_and_encrypt_note(
             &mut context,
-            context.msg_sender(),
-            context.msg_sender(),
+            escrow_owner,
+            escrow_owner,
         ));
 
-        OpenbankingEscrow::at(context.this_address())
-            ._init_provider_balance(commitment, amount)
+        OpenbankingEscrow::at(escrow_contract)
+            ._init_escrow_balance(commitment, amount)
             .enqueue(&mut context);
 
         // transfer private token balance to public balance of escrow
-        let token_contract = storage.token_contract.read();
+        let token_contract = storage.config.read().token;
         Token::at(token_contract)
-            .transfer_to_public(context.msg_sender(), context.this_address(), amount, 0)
+            .transfer_to_public(escrow_owner, escrow_contract, amount, 0)
             .call(&mut context);
     }
 
     #[private]
     fn prove_payment_and_claim(openbanking_params: OpenbankingVerifierParamsContract) {
         // prove openbanking payment
-        let OpenbankingVerifierReturn {
-    amount,
-    currency_code: currency_code_bytes,
-    sort_code: sort_code_bytes,
-    payment_id,} = verify_openbanking_payment(openbanking_params.marshal());
+        let result: OpenbankingVerifierReturn = verify_openbanking_payment(openbanking_params.marshal());
 
-        // recreate commitment
-        let sort_code = field_from_bytes::<SORT_CODE_VALUE_LENGTH>(sort_code_bytes, false);
-        let currency_code =
-            field_from_bytes::<CURRENCY_CODE_VALUE_LENGTH>(currency_code_bytes, false);
-        let commitment = Poseidon2::hash([sort_code, currency_code], 2);
+        // escrow commitment retrieved from sort / bank account code and currency
+        // todo: add commitment salt
+        let escrow_commitment = result.recipient_commitment();
 
-        // parse amount from bounded vec
-        let amount = bytes_to_num::<MAX_AMOUNT_VALUE_LENGTH>(amount);
+        // parse the amount sent in the open banking transfer
+        let amount = U128::from_integer(result.parse_amount());
 
-        // hash payment id
-        let payment_id_packed = pack_bytes::<PAYMENT_ID_LENGTH>(payment_id);
-        let payment_hash = Poseidon2::hash(payment_id_packed, 2);
+        // hash payment id and emit as a nullifier
+        // should fail if payment id already exists
+        let payment_nullifier = result.payment_nullifier();
+        context.push_nullifier(payment_nullifier);
 
         // update public balance
-        OpenbankingEscrow::at(context.this_address())
-            ._apply_payment(payment_hash, commitment, amount)
+        let escrow_contract = OpenbankingEscrow::at(context.this_address());
+        escrow_contract
+            ._apply_payment(escrow_commitment, amount)
             .enqueue(&mut context);
 
         // transfer tokens to claimant's private balance
-        OpenbankingEscrow::at(context.this_address())
-            ._withdraw_tokens(context.msg_sender(), amount)
-            .call(&mut context);
-    }
-
-    #[private]
-    fn withdraw_provider_balance(amount: U128) {
-        // TODO: Perform check that note exists
-        // let provider_account = storage.provider_account.get_note().note;
-
-        // decrement provider balance in escrow
-        // OpenbankingEscrow::at(context.this_address())
-        //     ._decrement_provider_balance(provider_account.commitment, amount)
-        //     .enqueue(&mut context);
-
-        // transfer tokens to provider's private balance
-        OpenbankingEscrow::at(context.this_address())
-            ._withdraw_tokens(context.msg_sender(), amount)
-            .call(&mut context);
-    }
-
-    #[public]
-    #[internal]
-    fn _decrement_provider_balance(commitment: Field, amount: U128) {
-        let provider_balance = storage.provider_balances.at(commitment).read();
-        // assert block number with past withdrawable block restrincton
-        let current_block = context.block_number();
-        assert(
-            current_block as u32 >= provider_balance.withdrawable_at as u32,
-            "Cannot withdraw in block restriction window.",
+        withdraw_tokens(
+            &mut context,
+            storage.config.read().token,
+            context.msg_sender(),
+            amount,
         );
-        // assert withdrawable amount doesn't exceed balance
-        assert(amount <= provider_balance.balance, "Amount exceeds provider balance.");
-
-        let updated_provider_balance = ProviderBalance {
-            balance: provider_balance.balance - amount,
-            initialized: provider_balance.initialized,
-            withdrawable_at: provider_balance.withdrawable_at,
-        };
-
-        storage.provider_balances.at(commitment).write(updated_provider_balance);
-    }
-
-    #[public]
-    #[internal]
-    fn _increment_provider_balance(commitment: Field, amount: U128) {
-        let provider_balance = storage.provider_balances.at(commitment).read();
-
-        // get current block number and set withdrawable block to be + 2
-        let current_block = context.block_number();
-        let updated_provider_balance = ProviderBalance {
-            balance: provider_balance.balance + amount,
-            initialized: provider_balance.initialized,
-            withdrawable_at: current_block + 2,
-        };
-
-        storage.provider_balances.at(commitment).write(updated_provider_balance);
-    }
-
-    #[public]
-    #[internal]
-    fn _init_provider_balance(commitment: Field, amount: U128) {
-        // check that commitment doesn't already exist
-        let provider_balance = storage.provider_balances.at(commitment).read();
-        assert(provider_balance.initialized == false, "Commitment has already been set.");
-
-        // get current block number and set withdrawable block to be + 2
-        let current_block = context.block_number();
-        let updated_provider_balance = ProviderBalance {
-            balance: amount,
-            initialized: true,
-            withdrawable_at: current_block + 2,
-        };
-
-        storage.provider_balances.at(commitment).write(updated_provider_balance);
-    }
-
-    #[public]
-    #[internal]
-    fn _apply_payment(payment_hash: Field, commitment: Field, amount: U128) {
-        // check that commitment exists
-        let provider_balance = storage.provider_balances.at(commitment).read();
-        assert(provider_balance.initialized == true, "Commitment does not exist.");
-
-        // check that amount does not exceed balance
-        assert(amount <= provider_balance.balance, "Payment amount exceeds provider balance.");
-
-        // check that unique payment hasn't already been stored
-        let spent_payment = storage.spent_payments.at(payment_hash).read();
-        assert(spent_payment == false, "Payment has already been spent.");
-
-        let updated_balance = ProviderBalance {
-            balance: provider_balance.balance - amount,
-            initialized: provider_balance.initialized,
-            withdrawable_at: provider_balance.withdrawable_at,
-        };
-
-        storage.provider_balances.at(commitment).write(updated_balance);
-        storage.spent_payments.at(payment_hash).write(true);
     }
 
     #[private]
+    fn prompt_withdraw_escrow_balance(amount: U128) {
+        let escrow_owner = context.msg_sender();
+        let mut escrow_owner_note = storage.escrow_owners.at(escrow_owner).get_note().note;
+        assert(escrow_owner_note.owner == escrow_owner, "Cannot use escrow owner note");
+        storage.escrow_owners.at(escrow_owner).replace(&mut escrow_owner_note).emit(
+            encode_and_encrypt_note(
+            &mut context,
+            escrow_owner,
+            escrow_owner,
+        ));
+        let escrow_contract = OpenbankingEscrow::at(context.this_address());
+        escrow_contract
+            ._prompt_withdraw_escrow_balance(escrow_owner_note.commitment, amount)
+            .enqueue(&mut context);
+    }
+
+    #[public]
     #[internal]
-    fn _withdraw_tokens(user: AztecAddress, amount: U128) {
-        let token_contract = Token::at(storage.token_contract.read());
-        let hiding_point_slot =
-            token_contract.prepare_private_balance_increase(user, user).call(&mut context);
-        token_contract.finalize_transfer_to_private(amount, hiding_point_slot).enqueue(&mut context);
+    fn _prompt_withdraw_escrow_balance(commitment: Field, amount: U128) {
+        // check that commitment doesn't already exist
+        let mut escrow_balance = storage.escrow_balances.at(commitment).read();
+        escrow_balance.assert_initialized(true);
+
+        escrow_balance.mark_for_withdrawal(amount, context.block_number());
+        storage.escrow_balances.at(commitment).write(escrow_balance);
+    }
+
+    #[private]
+    fn withdraw_escrow_balance(amount: U128) {
+        let escrow_owner = context.msg_sender();
+        let mut escrow_owner_note = storage.escrow_owners.at(escrow_owner).get_note().note;
+        assert(escrow_owner_note.owner == escrow_owner, "Cannot use escrow owner note");
+        storage.escrow_owners.at(escrow_owner).replace(&mut escrow_owner_note).emit(
+            encode_and_encrypt_note(
+            &mut context,
+            escrow_owner,
+            escrow_owner,
+        ));
+
+        // decrement escrow balance in escrow
+        OpenbankingEscrow::at(context.this_address())
+            ._decrement_escrow_balance(escrow_owner_note.commitment, amount)
+            .enqueue(&mut context);
+
+        // transfer tokens to escrow owner's private balance
+        withdraw_tokens(
+            &mut context,
+            storage.config.read().token,
+            context.msg_sender(),
+            amount,
+        );
+    }
+
+    #[public]
+    #[internal]
+    fn _decrement_escrow_balance(commitment: Field, amount: U128) {
+        // check that escrow exists for the commitment
+        let mut escrow_balance = storage.escrow_balances.at(commitment).read();
+        escrow_balance.assert_initialized(true);
+        
+        // check that amount does not exceed balance and decrement
+        // escrow_balance.assert_withdrawable(context.block_number());
+
+        // decrement the escrow balance
+        escrow_balance.decrement(amount);
+
+        // update the escrow balance
+        storage.escrow_balances.at(commitment).write(escrow_balance);
+    }
+
+    #[public]
+    #[internal]
+    fn _increment_escrow_balance(commitment: Field, amount: U128) {
+        // check that escrow exists for the commitment
+        let mut escrow_balance = storage.escrow_balances.at(commitment).read();
+        escrow_balance.assert_initialized(true);
+
+        // deposit funds into the escrow balance
+        escrow_balance.deposit(amount);
+
+        // update the escrow balance
+        storage.escrow_balances.at(commitment).write(escrow_balance);
+    }
+
+    #[public]
+    #[internal]
+    fn _init_escrow_balance(commitment: Field, amount: U128) {
+        // check that commitment doesn't already exist
+        let mut escrow_balance = storage.escrow_balances.at(commitment).read();
+        escrow_balance.assert_initialized(false);
+
+        // add a new escrow balance
+        storage.escrow_balances.at(commitment).write(EscrowBalance::new(amount));
+    }
+
+    #[public]
+    #[internal]
+    fn _apply_payment(commitment: Field, amount: U128) {
+        // check that escrow exists for the commitment
+        let mut escrow_balance = storage.escrow_balances.at(commitment).read();
+        escrow_balance.assert_initialized(true);
+
+        // check that amount does not exceed balance and decremtn
+        escrow_balance.decrement(amount);
+
+        // update the escrow balance
+        storage.escrow_balances.at(commitment).write(escrow_balance);
+    }
+
+
+    // unconstrained fn get_escrow_liqudity_position(commitments: BoundedVec<Field, MAX_NOTES_PER_PAGE>) -> BoundedVec<Option<EscrowBalance>, MAX_NOTES_PER_PAGE> {
+    //     let mut balances = BoundedVec::new();
+    //     for i in 0..MAX_NOTES_PER_PAGE {
+    //         let balance = storage.escrow_balances.at(commitments.get_unchecked(i)).read();
+    //         let mut value = Option::none();
+    //         if balance.initialized {
+    //             value = Option::some(balance);
+    //         }
+    //         if i < commitments.len() {
+    //             balances.push(value);
+    //         }
+    //     }
+    //     balances
+    // }
+
+    unconstrained fn get_escrow_liqudity_position(commitment: Field) -> Option<EscrowBalance> {
+        let balance = storage.escrow_balances.at(commitment).read();
+        let mut value = Option::none();
+        if balance.initialized {
+            value = Option::some(balance);
+        }
+        value
+    }
+
+    unconstrained fn get_escrow_owner_note(scope: AztecAddress) -> Option<EscrowOwnerNote> {
+        if storage.escrow_owners.at(scope).is_initialized() {
+            Option::some(storage.escrow_owners.at(scope).view_note())
+        } else {
+            Option::none()
+        }
     }
 }

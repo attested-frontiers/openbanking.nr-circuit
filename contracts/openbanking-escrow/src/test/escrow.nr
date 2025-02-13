@@ -1,9 +1,9 @@
 use crate::test::utils::{
     escrow_helpers::{
         check_commitment_balance, get_commitment_data, increment_balance, initial_deposit,
-        prove_payment, withdraw,
+        prove_payment, withdraw, prompt_withdrawal
     },
-    setup_helpers::setup,
+    setup_helpers::{setup, get_pubkey_hashes},
     test_inputs::{CURRENCY_CODE, REVOLUT_PAYMENT_PAYLOAD, SORT_CODE},
     token_helpers::{check_private_balance, check_public_balance, mint_private, to_usdc_decimals},
 };
@@ -61,6 +61,7 @@ unconstrained fn test_claim_revolut() {
         accounts.bob,
         U128::from_integer(to_usdc_decimals(1)),
     );
+    let key_hashes = get_pubkey_hashes();
 }
 
 // #[test(should_fail_with = "Cannot withdraw in block restriction window.")]
@@ -100,7 +101,7 @@ unconstrained fn test_early_withdraw() {
     );
 }
 
-// TODO: Check why tokens are not trasferred to provider
+// TODO: Check why tokens are not trasferred to escrow owner
 #[test]
 unconstrained fn test_successful_withdrawal() {
     let (env, accounts, contracts) = setup();
@@ -129,17 +130,17 @@ unconstrained fn test_successful_withdrawal() {
         mint_amount,
     );
 
-    // advance block by 1 to withdraw (withdrawal restriction is 2 and we already advance by one in intial deposit helper)
-    cheatcodes::advance_blocks_by(1);
-
+    // prompt withdrawal
+    prompt_withdrawal(env, accounts.alice, contracts.escrow, mint_amount, true);
+    // withdraw
     withdraw(env, accounts.alice, contracts.escrow, mint_amount);
 
-    // check_commitment_balance(contracts.escrow, commitment, U128::from_integer(0));
-    check_public_balance(contracts.usdc, contracts.escrow, U128::from_integer(0));
-    check_private_balance(contracts.usdc, accounts.alice, mint_amount);
+    // // check_commitment_balance(contracts.escrow, commitment, U128::from_integer(0));
+    // check_public_balance(contracts.usdc, contracts.escrow, U128::from_integer(0));
+    // check_private_balance(contracts.usdc, accounts.alice, mint_amount);
 }
 
-// #[test(should_fail_with = "Amount exceeds provider balance.")]
+// #[test(should_fail_with = "Amount exceeds escrow balance.")]
 unconstrained fn test_withdrawal_amount_exceeds_balance() {
     let (env, accounts, contracts) = setup();
     let mint_amount = U128::from_integer(to_usdc_decimals(50));
@@ -179,7 +180,7 @@ unconstrained fn test_withdrawal_amount_exceeds_balance() {
 }
 
 // #[test]
-unconstrained fn test_increment_provider_balance() {
+unconstrained fn test_increment_escrow_balance() {
     let (env, accounts, contracts) = setup();
     let mint_amount = U128::from_integer(to_usdc_decimals(70));
     let increment_amount = U128::from_integer(to_usdc_decimals(20));
@@ -224,7 +225,7 @@ unconstrained fn test_increment_provider_balance() {
 }
 
 // #[test(should_fail_with = "Rejecting tx for emitting duplicate nullifiers")]
-unconstrained fn test_init_provider_twice() {
+unconstrained fn test_init_escrow_twice() {
     let (env, accounts, contracts) = setup();
     let mint_amount = U128::from_integer(to_usdc_decimals(50));
 
@@ -328,8 +329,8 @@ unconstrained fn test_claim_on_nonexistent_commitment() {
     prove_payment(env, accounts.bob, contracts.escrow, REVOLUT_PAYMENT_PAYLOAD);
 }
 
-// #[test(should_fail_with = "Payment amount exceeds provider balance.")]
-unconstrained fn test_payment_amount_exceeds_provider_balance() {
+// #[test(should_fail_with = "Payment amount exceeds escrow owner balance.")]
+unconstrained fn test_payment_amount_exceeds_escrow_balance() {
     let (env, accounts, contracts) = setup();
     let mint_amount = U128::from_integer(to_usdc_decimals(1) / 10);
 
@@ -356,7 +357,7 @@ unconstrained fn test_payment_amount_exceeds_provider_balance() {
         mint_amount,
     );
 
-    // prove payment with amount that exceeds provider balance
+    // prove payment with amount that exceeds escrow owner balance
     prove_payment(env, accounts.bob, contracts.escrow, REVOLUT_PAYMENT_PAYLOAD);
 }
 

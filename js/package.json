@@ -1,12 +1,130 @@
 {
-  "name": "jwt_test",
+  "name": "@openbanking.nr/js-inputs",
   "version": "1.0.0",
-  "main": "src/index.js",
+  "main": "dist",
+  "types": "dist",
   "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint .",
+    "prepublishOnly": "yarn lint && yarn build",
+    "deploy": "node --loader ts-node/esm src/deploy.ts"
+  },
   "dependencies": {
-    "@aztec/noir-contracts.js": "^0.72.1",
+    "@aztec/accounts": "=0.76.1",
+    "@aztec/noir-contracts.js": "=0.76.1",
     "@mach-34/noir-bignum-paramgen": "^1.1.2",
-    "@noir-lang/noir_js": "^1.0.0-beta.1",
-    "@zk-email/helpers": "^6.3.2"
+    "@noir-lang/noir_js": "=1.0.0-beta.1",
+    "@noir-lang/noirc_abi": "=1.0.0-beta.1",
+    "@types/axios": "^0.14.4",
+    "@zk-email/helpers": "^6.3.2",
+    "axios": "^1.7.9",
+    "jose": "^5.9.6"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@babel/plugin-syntax-import-assertions": "^7.26.0",
+    "@babel/preset-env": "^7.26.8",
+    "@babel/preset-typescript": "^7.26.0",
+    "@types/jest": "^29.5.14",
+    "@types/mocha": "^10.0.8",
+    "@types/node": "^22.13.1",
+    "@typescript-eslint/eslint-plugin": "7",
+    "@typescript-eslint/parser": "7",
+    "babel-jest": "^29.7.0",
+    "babel-preset-jest": "^29.5.0",
+    "eslint": "^8.0.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-config-airbnb-typescript": "^18.0.0",
+    "eslint-plugin-import": "^2.29.1",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "5.5"
+  },
+  "files": [
+    "dist/**/**",
+    "docs/**/**",
+    "!**/*.spec.*",
+    "!**/*.json",
+    "!**/*.tsbuildinfo",
+    "LICENSE",
+    "README.md"
+  ],
+  "babel": {
+    "presets": [
+      [
+        "@babel/preset-env",
+        {
+          "targets": {
+            "node": "current"
+          }
+        }
+      ],
+      [
+        "@babel/preset-typescript",
+        {
+          "allowDeclareFields": true,
+          "parserPlugins": [
+            "deprecatedImportAssert"
+          ]
+        }
+      ],
+      [
+        "jest"
+      ]
+    ],
+    "plugins": [
+      "@babel/plugin-syntax-import-assertions"
+    ]
+  },
+  "eslintConfig": {
+    "env": {
+      "browser": true,
+      "es2021": true,
+      "node": true
+    },
+    "extends": [
+      "airbnb-base",
+      "airbnb-typescript/base"
+    ],
+    "ignorePatterns": [
+      "src/lib/**/*",
+      "tests/**/*",
+      "dist",
+      "node_modules"
+    ],
+    "parser": "@typescript-eslint/parser",
+    "parserOptions": {
+      "ecmaVersion": 12,
+      "sourceType": "module",
+      "project": "./tsconfig.json"
+    },
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "rules": {
+      "max-len": [
+        "error",
+        {
+          "code": 150
+        }
+      ],
+      "object-curly-newline": "off",
+      "operator-linebreak": "off",
+      "@typescript-eslint/quotes": "off",
+      "@typescript-eslint/comma-dangle": "off",
+      "import/prefer-default-export": "off",
+      "no-await-in-loop": "off",
+      "no-restricted-syntax": "off",
+      "no-plusplus": "off",
+      "no-bitwise": "off",
+      "no-console": "off",
+      "no-continue": "off",
+      "@typescript-eslint/no-use-before-define": "off",
+      "prefer-destructuring": "off"
+    }
   }
 }

@@ -1,5 +1,5 @@
 use aztec::protocol_types::utils::field::field_from_bytes;
-
+use std::hash::poseidon2::Poseidon2;
 pub fn bytes_to_num<let MAX_AMOUNT_VALUE_LENGTH: u32>(
     amount_value: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH>,
 ) -> U128 {
@@ -17,12 +17,17 @@ pub fn bytes_to_num<let MAX_AMOUNT_VALUE_LENGTH: u32>(
     U128::from_integer(converted * 10.pow_32(4))
 }
 
-pub fn pack_bytes<let N: u32>(bytes: [u8; N]) -> [Field; N / 31 + 1] {
-    let bytes_padded = bytes.pad_end::<(N / 31 + 1) * 31>(0);
-    let mut res = [0 as Field; N / 31 + 1];
-    for i in 0..N / 31 + 1 {
-        let chunk = bytes_padded.slice::<31>(i * 31);
-        res[i] = field_from_bytes(chunk, false);
+
+
+pub fn hash_pubkey(modulus: [Field; 18], redc: [Field; 18]) -> Field {
+    let mut dkim_preimage: [Field; 18] = [0; 18];
+    for i in 0..9 {
+        let low_index = i * 2;
+        let hi_index = i * 2 + 1;
+        let modulus_hi = modulus[hi_index] * 2.pow_32(120);
+        let redc_hi = redc[hi_index] * 2.pow_32(120);
+        dkim_preimage[i] = modulus_hi + modulus[low_index];
+        dkim_preimage[i + 9] = redc_hi + redc[low_index];
     }
-    res
+    Poseidon2::hash(dkim_preimage, 18)
 }

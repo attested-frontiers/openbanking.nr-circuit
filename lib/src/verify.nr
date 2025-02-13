@@ -1,7 +1,7 @@
 use crate::{
     constants::{
         AMOUNT_KEY, AMOUNT_KEY_LENGTH, CURRENCY_CODE_KEY, CURRENCY_CODE_KEY_LENGTH,
-        CURRENCY_CODE_VALUE_LENGTH, DEBTOR_ACCOUNT_KEY, INITIATION_KEY, INSTRUCTED_AMOUNT_KEY,
+        CURRENCY_CODE_VALUE_LENGTH, CREDITOR_ACCOUNT_KEY, INITIATION_KEY, INSTRUCTED_AMOUNT_KEY,
         MAX_AMOUNT_VALUE_LENGTH, PAYLOAD_DATA_KEY, PAYMENT_ID_KEY, PAYMENT_ID_KEY_LENGTH,
         PAYMENT_ID_LENGTH, SORT_CODE_KEY, SORT_CODE_KEY_LENGTH, SORT_CODE_VALUE_LENGTH,
     },
@@ -70,14 +70,14 @@ pub fn verify_openbanking_payment(params: OpenbankingVerifierParams) -> Openbank
     // parse through nested JSON to extract values
     let data_obj = json.get_object(PAYLOAD_DATA_KEY).unwrap();
     let initiation_obj = data_obj.get_object(INITIATION_KEY).unwrap();
-    let debtor_acc_obj = initiation_obj.get_object(DEBTOR_ACCOUNT_KEY).unwrap();
+    let creditor_acc_obj = initiation_obj.get_object(CREDITOR_ACCOUNT_KEY).unwrap();
 
     // extract payment id
     let payment_id_result =
         data_obj.get_string_unchecked::<PAYMENT_ID_KEY_LENGTH, PAYMENT_ID_LENGTH>(PAYMENT_ID_KEY);
 
     // extract sort code
-    let sort_code_result = debtor_acc_obj
+    let sort_code_result = creditor_acc_obj
         .get_string_unchecked::<SORT_CODE_KEY_LENGTH, SORT_CODE_VALUE_LENGTH>(SORT_CODE_KEY);
 
     let instructed_amt_obj = initiation_obj.get_object(INSTRUCTED_AMOUNT_KEY).unwrap();

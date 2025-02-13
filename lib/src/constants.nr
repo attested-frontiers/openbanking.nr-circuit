@@ -15,7 +15,7 @@ pub global PAYMENT_ID_LENGTH: u32 = 36;
 // Payload keys
 pub global AMOUNT_KEY: [u8; AMOUNT_KEY_LENGTH] = comptime { "Amount".as_bytes() };
 pub global CURRENCY_CODE_KEY: [u8; CURRENCY_CODE_KEY_LENGTH] = comptime { "Currency".as_bytes() };
-pub global DEBTOR_ACCOUNT_KEY: [u8; 13] = comptime { "DebtorAccount".as_bytes() };
+pub global CREDITOR_ACCOUNT_KEY: [u8; 15] = comptime { "CreditorAccount".as_bytes() };
 pub global INITIATION_KEY: [u8; 10] = comptime { "Initiation".as_bytes() };
 pub global INSTRUCTED_AMOUNT_KEY: [u8; 16] = comptime { "InstructedAmount".as_bytes() };
 pub global PAYLOAD_DATA_KEY: [u8; 4] = comptime { "Data".as_bytes() };

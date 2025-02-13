@@ -141,9 +141,9 @@ ts_artifacts() {
 
     # Update import paths for JS library
     cp ./target/$COMPILED_CONTRACT_NAME $ARTIFACTS_PATH/contracts/openbanking_escrow.json
-    sed -i "s|../../../../contracts/openbanking-escrow/target/$COMPILED_CONTRACT_NAME|./openbanking_escrow.json|" $ARTIFACTS_PATH/contracts/OpenbankingEscrow.ts
-    sed -i "s|assert { type: 'json' }|with { type: 'json' }|" $ARTIFACTS_PATH/contracts/OpenbankingEscrow.ts
-    sed -i "/export const OpenBankingEscrowContractArtifact = loadContractArtifact(OpenBankingArtifactContractArtifactJson as NoirCompiledContract);/i \\/\/@ts-ignore" $ARTIFACTS_PATH/contracts/OpenbankingEscrow.ts
+    $sed_cmd -i "s|../../../../contracts/openbanking-escrow/target/$COMPILED_CONTRACT_NAME|./openbanking_escrow.json|" $ARTIFACTS_PATH/contracts/OpenbankingEscrow.ts
+    $sed_cmd -i "s|assert { type: 'json' }|with { type: 'json' }|" $ARTIFACTS_PATH/contracts/OpenbankingEscrow.ts
+    $sed_cmd -i "/export const OpenBankingEscrowContractArtifact = loadContractArtifact(OpenBankingArtifactContractArtifactJson as NoirCompiledContract);/i \\/\/@ts-ignore" $ARTIFACTS_PATH/contracts/OpenbankingEscrow.ts
 
     # Build the library from ts to js
     cd $SCRIPT_DIR/../js
@@ -182,7 +182,7 @@ case "$1" in
         echo -e "   ${GREEN}✓${NC}   Saved OpenBanking Domestic Payment Circuit ACIR to ${ORANGE}$ARTIFACTS_PATH/circuits/openbanking_domestic.json${NC}"
         ;;
     "contract-artifacts")
-        # compile_contracts
+        compile_contracts
         ts_artifacts
         echo "Summary:"
         echo -e "   ${GREEN}✓${NC}   Saved OpenBanking Escrow Contract ACIR to ${ORANGE}$CONTRACT_ACIR_PATH${NC}"

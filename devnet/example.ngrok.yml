@@ -1,0 +1,11 @@
+version: "3"
+agent:
+    authtoken: # just put your authtoken here (cat ~/.ngrok2/ngrok.yml)
+    connect_url: connect.us.ngrok-agent.com:443
+tunnels:
+  eth_rpc:
+    proto: http
+    addr: http://34.83.148.196:8545
+  aztec_rpc:
+    proto: http
+    addr: aztec:8080

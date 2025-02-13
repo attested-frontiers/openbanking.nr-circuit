@@ -41,7 +41,8 @@ else
 fi
 
 show_help() {
-    echo "Usage: $0 [option]"
+    echo -e "Usage: $0 [option]"
+    echo -e "Example: ${ORANGE}$0 all${NC}"
     echo "Options:"
     echo -e "  ${ORANGE}all${NC}                 Compile circuit & contract ACIRs, ts artifact for contract, and add to js artifact dir"
     echo -e "  ${ORANGE}circuits${NC}            Compile only the circuit ACIR"

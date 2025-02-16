@@ -145,6 +145,9 @@ EscrowOwnerNote: {
     /** add_key_hashes(key_hashes: array) */
     add_key_hashes: ((key_hashes: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
+    /** check_verify_payload(payload: struct) */
+    check_verify_payload: ((payload: { signature_limbs: FieldLike[], modulus_limbs: FieldLike[], redc_limbs: FieldLike[], partial_hash_start: (bigint | number)[], header_delimiter_index: (bigint | number), payload: (bigint | number)[], payload_length: (bigint | number) }) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
     /** compute_note_hash_and_optionally_a_nullifier(contract_address: struct, nonce: field, storage_slot: field, note_type_id: field, compute_nullifier: boolean, packed_note_content: array) */
     compute_note_hash_and_optionally_a_nullifier: ((contract_address: AztecAddressLike, nonce: FieldLike, storage_slot: FieldLike, note_type_id: FieldLike, compute_nullifier: boolean, packed_note_content: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
@@ -153,6 +156,9 @@ EscrowOwnerNote: {
 
     /** get_escrow_liqudity_position(commitment: field) */
     get_escrow_liqudity_position: ((commitment: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
+    /** get_escrow_liqudity_position_page(commitments: struct) */
+    get_escrow_liqudity_position_page: ((commitments: { storage: FieldLike[], len: (bigint | number) }) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** get_escrow_owner_note(scope: struct) */
     get_escrow_owner_note: ((scope: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

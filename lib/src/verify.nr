@@ -91,6 +91,7 @@ pub fn verify_openbanking_payment(params: OpenbankingVerifierParams) -> Openbank
             CURRENCY_CODE_KEY,
         );
 
+
     OpenbankingVerifierReturn {
         amount: amount_result,
         currency_code: currency_code_result.storage,

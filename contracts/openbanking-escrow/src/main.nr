@@ -272,21 +272,21 @@ contract OpenbankingEscrow {
         storage.escrow_balances.at(commitment).write(escrow_balance);
     }
 
+    unconstrained fn check_verify_payload(payload: OpenbankingVerifierParamsContract) -> OpenbankingVerifierReturn {
+        verify_openbanking_payment(payload.marshal())
+    }
 
-    // unconstrained fn get_escrow_liqudity_position(commitments: BoundedVec<Field, MAX_NOTES_PER_PAGE>) -> BoundedVec<Option<EscrowBalance>, MAX_NOTES_PER_PAGE> {
-    //     let mut balances = BoundedVec::new();
-    //     for i in 0..MAX_NOTES_PER_PAGE {
-    //         let balance = storage.escrow_balances.at(commitments.get_unchecked(i)).read();
-    //         let mut value = Option::none();
-    //         if balance.initialized {
-    //             value = Option::some(balance);
-    //         }
-    //         if i < commitments.len() {
-    //             balances.push(value);
-    //         }
-    //     }
-    //     balances
-    // }
+
+    unconstrained fn get_escrow_liqudity_position_page(commitments: BoundedVec<Field, MAX_NOTES_PER_PAGE>) -> BoundedVec<EscrowBalance, MAX_NOTES_PER_PAGE> {
+        let mut balances = BoundedVec::new();
+        for i in 0..MAX_NOTES_PER_PAGE {
+            let balance = storage.escrow_balances.at(commitments.get_unchecked(0)).read();
+            if i < commitments.len() {
+                balances.push(balance);
+            }
+        }
+        balances
+    }
 
     unconstrained fn get_escrow_liqudity_position(commitment: Field) -> Option<EscrowBalance> {
         let balance = storage.escrow_balances.at(commitment).read();

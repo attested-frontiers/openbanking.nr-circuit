@@ -7,8 +7,10 @@ import {
   decodeNoirOutputs,
   generateNoirInputs,
   REVOLUT_JWKS_URI,
-  getPubkeyHashes
+  getPubkeyHashes,
+  toProverToml
 } from '../src';
+import inputs from './test_data/inputs.json';
 
 // hardcoded inputs for now
 const payload = fs.readFileSync('./tests/test_data/revolut_payload.txt', 'utf8');
@@ -29,8 +31,9 @@ describe('OpenBanking.nr Circuit Test', () => {
 
   describe('Simulate Witnesses', () => {
     it('Test execution', async () => {
-      const inputs = generateNoirInputs(payload, signature, publicKey);
-      const result = await noir.execute({ params: inputs });
+      // const inputs = generateNoirInputs(payload, signature, publicKey);
+      console.log(toProverToml(inputs.inputs));
+      const result = await noir.execute({ params: inputs.inputs });
       const outputs = decodeNoirOutputs(result.returnValue);
       console.log(outputs);
 

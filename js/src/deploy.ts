@@ -18,7 +18,7 @@ const USDC_TOKEN = {
 }
 
 const deploy = async () => {
-    const pxe = createPXEClient('https://09b4-80-87-23-81.ngrok-free.app');
+    const pxe = createPXEClient('http://localhost:8080');
     await waitForPXE(pxe);
 
     // @ts-ignore
@@ -44,12 +44,17 @@ const deploy = async () => {
         Fr.fromHexString("0x1995a9a76e9e03a897b202b27e9a71a7513b733e1a19bbb40cc3f81e2fb2b23f")
     ]).send().deployed();
 
-    await registerContractClassArtifact(
-        'EscrowContract',
-        OpenbankingEscrowArtifactJson as NoirCompiledContract,
-        escrow.instance.contractClassId.toString(),
-        1,
-    );
+
+    console.log('Token contract: ', token.address.toString());
+    console.log('Escrow contract: ', escrow.address.toString());
+    console.log('Token admin: ', adminWallet.getSecretKey().toString());
+
+    // await registerContractClassArtifact(
+    //     'EscrowContract',
+    //     OpenbankingEscrowArtifactJson as NoirCompiledContract,
+    //     escrow.instance.contractClassId.toString(),
+    //     1,
+    // );
 };
 
 deploy();

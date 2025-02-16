@@ -1,0 +1,23 @@
+# Ignore dependencies
+node_modules
+dist
+.vite
+
+# Ignore package manager lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Ignore built files
+build
+coverage
+
+# Ignore environment variables
+.env
+.env.local
+.env.development
+.env.production
+
+# Ignore logs
+logs
+*.log

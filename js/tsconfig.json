@@ -18,7 +18,7 @@
     "types": ["node", "jest"],
     "incremental": true,
     "outDir": "dist",
-    "tsBuildInfoFile": "./.tsbuildinfo",
+    "tsBuildInfoFile": "./.tsbuildinfo"
   },
   "include": ["src/**/*", "README.md", "LICENSE"],
   "exclude": ["dist", "node_modules"]

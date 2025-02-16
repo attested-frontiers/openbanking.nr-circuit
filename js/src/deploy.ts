@@ -2,10 +2,14 @@ import {
     createPXEClient,
     Fr,
     waitForPXE,
+    NoirCompiledContract
 } from '@aztec/aztec.js';
 import { getSingleKeyAccount } from '@aztec/accounts/single_key';
 import { TokenContract } from '@aztec/noir-contracts.js/Token';
 import { OpenbankingEscrowContract } from './artifacts/contracts/OpenbankingEscrow.js';
+import OpenbankingEscrowArtifactJson from './artifacts/contracts/openbanking_escrow.json' assert { type: 'json' };
+import { registerContractClassArtifact } from './verifyContract.js';
+// import TokenContractArtifactJson from "@aztec/noir-contracts.js/artifacts/token_contract-Token.json" assert { type: 'json' };
 
 const USDC_TOKEN = {
     symbol: "USDC",
@@ -14,7 +18,7 @@ const USDC_TOKEN = {
 }
 
 const deploy = async () => {
-    const pxe = createPXEClient('http://localhost:8080');
+    const pxe = createPXEClient('https://09b4-80-87-23-81.ngrok-free.app');
     await waitForPXE(pxe);
 
     // @ts-ignore
@@ -39,9 +43,13 @@ const deploy = async () => {
         Fr.fromHexString("0x063b9064814feb22c88e0261a7028adeaec3acd41cb92336c3be712dd1bf0a92"),
         Fr.fromHexString("0x1995a9a76e9e03a897b202b27e9a71a7513b733e1a19bbb40cc3f81e2fb2b23f")
     ]).send().deployed();
-    console.log('Token address: ', token.address.toString());
-    console.log('Escrow address: ', escrow.address.toString());
-    console.log('Admin secret key: ', (await admin.getWallet()).getSecretKey().toString());
+
+    await registerContractClassArtifact(
+        'EscrowContract',
+        OpenbankingEscrowArtifactJson as NoirCompiledContract,
+        escrow.instance.contractClassId.toString(),
+        1,
+    );
 };
 
 deploy();

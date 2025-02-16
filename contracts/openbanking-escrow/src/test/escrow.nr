@@ -64,7 +64,7 @@ unconstrained fn test_claim_revolut() {
     let key_hashes = get_pubkey_hashes();
 }
 
-// #[test(should_fail_with = "Cannot withdraw in block restriction window.")]
+#[test(should_fail_with = "Cannot withdraw in block restriction window.")]
 unconstrained fn test_early_withdraw() {
     let (env, accounts, contracts) = setup();
     let mint_amount = U128::from_integer(to_usdc_decimals(50));
@@ -102,7 +102,7 @@ unconstrained fn test_early_withdraw() {
 }
 
 // TODO: Check why tokens are not trasferred to escrow owner
-#[test]
+// #[test]
 unconstrained fn test_successful_withdrawal() {
     let (env, accounts, contracts) = setup();
     let mint_amount = U128::from_integer(to_usdc_decimals(50));

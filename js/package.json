@@ -1,6 +1,6 @@
 {
-  "name": "@openbanking.nr/js-inputs",
-  "version": "1.0.0",
+  "name": "@openbanking-nr/js-inputs",
+  "version": "1.0.3",
   "main": "dist",
   "types": "dist",
   "license": "MIT",
@@ -50,7 +50,6 @@
     "dist/**/**",
     "docs/**/**",
     "!**/*.spec.*",
-    "!**/*.json",
     "!**/*.tsbuildinfo",
     "LICENSE",
     "README.md"

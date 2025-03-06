@@ -3,10 +3,9 @@ import { KeyObject } from 'crypto';
 import { partialSha } from '@zk-email/helpers';
 
 import { InputValue } from '@noir-lang/noirc_abi';
-import { MAX_AMOUNT_LENGTH, MAX_JWT_SIZE, MAX_PAYLOAD_SIZE } from './constants';
+import { MAX_PAYLOAD_SIZE } from './constants';
 import {
   OpenBankingDomesticCircuitInputs,
-  OpenBankingDomesticCircuitOutputs,
   OpenBankingDomesticCircuitOutputsRaw,
   OpenBankingDomesticContractInputs,
 } from './types';

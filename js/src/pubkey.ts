@@ -33,12 +33,6 @@ export async function getPubkeyHashes(
       .then((cert) => generatePubkeyParams(cert.publicKey)))
   );
 
-  const x = await Promise.all(
-    x5uURIs.map(async (x5u) => axios
-      .get(x5u, { responseType: 'text', httpsAgent: agent })
-      .then((res) => new X509Certificate(res.data)))
-  );
-
   const api = await BarretenbergSync.initSingleton();
   const pubkeyHashes = pubkeys.map((pubkey) => api.poseidon2Hash(compressPubkeyPreimage(pubkey)));
 

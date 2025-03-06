@@ -1,7 +1,5 @@
 import { createLogger, NoirCompiledContract } from '@aztec/aztec.js';
 import { request } from 'https';
-import { OpenbankingEscrowContract } from './artifacts';
-import OpenbankingEscrowArtifactJson from './artifacts/contracts/openbanking_escrow.json' assert { type: 'json' };
 
 // const acir = OpenbankingEscrowContract
 // const classId = OpenbankingEscrowContract.

@@ -9,7 +9,7 @@ import { generatePubkeyParams } from './inputGen';
 export async function getPubkeyHashes(
   jwksURI: string,
   issuing?: string,
-  root?: string
+  root?: string,
 ): Promise<Fr[]> {
   // fetch JWKS
   let agentParams = {};

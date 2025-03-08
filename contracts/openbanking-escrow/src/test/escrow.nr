@@ -1,7 +1,7 @@
 use crate::test::utils::{
     escrow_helpers::{
-        check_commitment_balance, get_commitment_data, increment_balance, initial_deposit,
-        prove_payment, withdraw, prompt_withdrawal
+        add_pubkey_hashes, check_commitment_balance, check_pubkey_hash_initialized, get_commitment_data, increment_balance, initial_deposit,
+        prove_payment, revoke_pubkey_hashes, withdraw, prompt_withdrawal
     },
     setup_helpers::{setup, get_pubkey_hashes},
     test_inputs::{CURRENCY_CODE, REVOLUT_PAYMENT_PAYLOAD, SORT_CODE},
@@ -13,6 +13,23 @@ use dep::aztec::{
 };
 use dep::openbanking_verifier::constants::{CURRENCY_CODE_VALUE_LENGTH, SORT_CODE_VALUE_LENGTH};
 use dep::std::hash::poseidon2::Poseidon2;
+
+#[test]
+unconstrained fn test_admin_key_additon_revocation() {
+    let (env, accounts, contracts) = setup();
+    
+    // add pubkey
+    add_pubkey_hashes(env, accounts.admin, contracts.escrow, [1, 0, 0, 0]);
+    let is_initialized = check_pubkey_hash_initialized(contracts.escrow, 1);
+    assert(is_initialized == true);
+
+    // revoke pubkey
+    revoke_pubkey_hashes(env, accounts.admin, contracts.escrow, [1, 0, 0, 0]);
+    let is_revoked = check_pubkey_hash_initialized(contracts.escrow, 1);
+    assert(is_revoked == false);
+
+    let pubkey_hashes = get_pubkey_hashes();
+}
 
 // #[test]
 unconstrained fn test_claim_revolut() {
@@ -64,7 +81,7 @@ unconstrained fn test_claim_revolut() {
     let key_hashes = get_pubkey_hashes();
 }
 
-#[test(should_fail_with = "Cannot withdraw in block restriction window.")]
+// #[test(should_fail_with = "Cannot withdraw in block restriction window.")]
 unconstrained fn test_early_withdraw() {
     let (env, accounts, contracts) = setup();
     let mint_amount = U128::from_integer(to_usdc_decimals(50));

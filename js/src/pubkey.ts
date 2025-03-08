@@ -6,6 +6,11 @@ import { BarretenbergSync, Fr } from '@aztec/bb.js';
 import { generatePubkeyParams } from './inputGen';
 // import { poseidon2Hash } from '@aztec/foundation/crypto';
 
+type StoredPubkey = {
+  kid: string;
+  hash: string;
+}
+
 export async function getPubkeyHashes(
   jwksURI: string,
   issuing?: string,
@@ -38,6 +43,50 @@ export async function getPubkeyHashes(
 
   console.log('pubkeyHashes', pubkeyHashes);
   return pubkeyHashes;
+}
+
+export async function getUpdatedPubkeyHashes(
+  jwksURI: string,
+  storedPubkeys: StoredPubkey[],
+  issuing?: string,
+  root?: string,
+): Promise<any> {
+  // fetch JWKS
+  let agentParams = {};
+  if (!issuing || !root) {
+    agentParams = { rejectUnauthorized: false };
+  } else {
+    agentParams = { ca: [root, issuing], rejectUnauthorized: true };
+  }
+  const agent = new Agent(agentParams);
+  const jwksResponse = await axios
+    .get(jwksURI, { httpsAgent: agent })
+    .then((res) => res.data as { keys: JWK[] });
+
+  // filter out kids already stored
+  const newPubkeys = jwksResponse.keys.filter((key: JWK) => !storedPubkeys.find(pubkey => pubkey.kid === key.kid!));
+
+  // parse the x509 URI to retrieve actual pubkeys
+  const x5uURIs = newPubkeys
+    .filter((jwk) => jwk.kid !== undefined && jwk.x5u !== undefined)
+    .map((jwk) => ({ kid: jwk.kid, x5u: jwk.x5u! }));
+  const pubkeys = await Promise.all(
+    x5uURIs.map(async (x5u) => {
+      return axios
+        .get(x5u.x5u, { responseType: 'text', httpsAgent: agent })
+        .then((res) => new X509Certificate(res.data))
+        .then((cert) => ({ kid: x5u.kid, ...generatePubkeyParams(cert.publicKey) }));
+    })
+  );
+
+  const api = await BarretenbergSync.initSingleton();
+  const pubkeyHashes = pubkeys.map(({ kid, ...pubkeyParams }) => ({ kid, hash: api.poseidon2Hash(compressPubkeyPreimage(pubkeyParams)).toString() }));
+  return {
+    newPubkeys: pubkeyHashes,
+    revokedPubkeys: storedPubkeys.filter(
+      (pubkey) => !jwksResponse.keys.find(({ kid }) => kid === pubkey.kid)
+    )
+  };
 }
 
 // @dev ASSUMES 2048 BIT KEY

@@ -20,6 +20,33 @@ pub unconstrained fn add_pubkey_hashes(
     cheatcodes::advance_blocks_by(1);
 }
 
+pub unconstrained fn revoke_pubkey_hashes(
+    env: &mut TestEnvironment,
+    admin: AztecAddress,
+    escrow_address: AztecAddress,
+    pubkey_hashes: [Field; 4]
+) {
+    env.impersonate(admin);
+    let escrow = OpenbankingEscrow::at(escrow_address);
+    let _ = escrow.revoke_keys(pubkey_hashes).call(&mut env.public());
+    cheatcodes::advance_blocks_by(1);
+}
+
+pub unconstrained fn check_pubkey_hash_initialized(
+    escrow_address: AztecAddress,
+    hash: Field,
+) -> bool {
+    let current_contract_address = get_contract_address();
+    cheatcodes::set_contract_address(escrow_address);
+    let block_number = get_block_number();
+
+    let balances_slot = OpenbankingEscrow::storage_layout().pubkey_registry.slot;
+    let pubkey_hash_slot = derive_storage_slot_in_map(balances_slot, hash);
+    let pubkey_hash_initialized: bool = storage_read(escrow_address, pubkey_hash_slot, block_number);
+    cheatcodes::set_contract_address(current_contract_address);
+    pubkey_hash_initialized
+}
+
 pub unconstrained fn increment_balance(
     env: &mut TestEnvironment,
     escrow_owner: AztecAddress,

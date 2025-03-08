@@ -41,7 +41,7 @@ contract OpenbankingEscrow {
         config: PublicImmutable<Config, Context>,
         escrow_owners: Map<AztecAddress, PrivateMutable<EscrowOwnerNote, Context>, Context>,
         escrow_balances: Map<Field, PublicMutable<EscrowBalance, Context>, Context>,
-        pubkey_registry: Map<Field, PublicImmutable<bool, Context>, Context>,
+        pubkey_registry: Map<Field, PublicMutable<bool, Context>, Context>,
     }
 
     #[public]
@@ -50,7 +50,7 @@ contract OpenbankingEscrow {
         storage.config.initialize(Config::new(token_address, context.msg_sender()));
         for i in 0..MAX_KEY_HASHES_PER_TX {
             if key_hashes[i] != 0 {
-                storage.pubkey_registry.at(key_hashes[i]).initialize(true);
+                storage.pubkey_registry.at(key_hashes[i]).write(true);
             }
         }
     }
@@ -61,20 +61,21 @@ contract OpenbankingEscrow {
         assert(admin == context.msg_sender(), "Only admin can add key hashes");
         for i in 0..MAX_KEY_HASHES_PER_TX {
             if key_hashes[i] != 0 {
-                storage.pubkey_registry.at(key_hashes[i]).initialize(true);
+                storage.pubkey_registry.at(key_hashes[i]).write(true);
             }
         }
     }
 
-    // #[public]
-    // fn revoke_key(key_hash: Field) {
-    //     let admin = storage.settings.read().admin;
-    //     assert(admin == context.msg_sender(), "Only admin can revoke keys");
-    //     // todo: should we require the key to be added to remove it? I think no
-    //     let revocation_hash = Poseidon2::hash(key_hash, 1);
-    //     storage.pubkey_registry.at(revocation_hash).initialize(true);
-    //     // todo: can you even tell if a it is initialized? IDT so
-    // }
+    #[public]
+    fn revoke_keys(key_hashes: [Field; MAX_KEY_HASHES_PER_TX]) {
+        let admin = storage.config.read().admin;
+        assert(admin == context.msg_sender(), "Only admin can revoke key hashes");
+        for i in 0..MAX_KEY_HASHES_PER_TX {
+            if key_hashes[i] != 0 {
+                storage.pubkey_registry.at(key_hashes[i]).write(false);
+            }
+        }
+    }
 
     #[private]
     fn increment_escrow_balance(amount: U128) {
@@ -275,7 +276,6 @@ contract OpenbankingEscrow {
     unconstrained fn check_verify_payload(payload: OpenbankingVerifierParamsContract) -> OpenbankingVerifierReturn {
         verify_openbanking_payment(payload.marshal())
     }
-
 
     unconstrained fn get_escrow_liqudity_position_page(commitments: BoundedVec<Field, MAX_NOTES_PER_PAGE>) -> BoundedVec<EscrowBalance, MAX_NOTES_PER_PAGE> {
         let mut balances = BoundedVec::new();

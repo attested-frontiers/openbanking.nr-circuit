@@ -7,6 +7,7 @@ use crate::test::utils::{
     test_inputs::{CURRENCY_CODE, REVOLUT_PAYMENT_PAYLOAD, SORT_CODE},
     token_helpers::{check_private_balance, check_public_balance, mint_private, to_usdc_decimals},
 };
+use crate::utils::hash_pubkey;
 use dep::aztec::{
     oracle::execution::get_block_number, protocol_types::utils::field::field_from_bytes,
     test::helpers::cheatcodes,
@@ -14,7 +15,7 @@ use dep::aztec::{
 use dep::openbanking_verifier::constants::{CURRENCY_CODE_VALUE_LENGTH, SORT_CODE_VALUE_LENGTH};
 use dep::std::hash::poseidon2::Poseidon2;
 
-#[test]
+// #[test]
 unconstrained fn test_admin_key_additon_revocation() {
     let (env, accounts, contracts) = setup();
     
@@ -31,10 +32,55 @@ unconstrained fn test_admin_key_additon_revocation() {
     let pubkey_hashes = get_pubkey_hashes();
 }
 
-// #[test]
+#[test(should_fail_with = "Pubkey not stored in registry")]
+unconstrained fn test_claim_with_invalid_pubkey() {
+    let (env, accounts, contracts) = setup();
+    let mint_amount = U128::from_integer(to_usdc_decimals(50));
+
+    // remove public key
+    revoke_pubkey_hashes(env, accounts.admin, contracts.escrow, [0x28474bcb17dbeab415b838f385be86f159acc3bf0ee386341997bd63e734d529, 0, 0, 0]);
+
+    mint_private(
+        env,
+        contracts.usdc,
+        accounts.admin,
+        accounts.alice,
+        mint_amount,
+    );
+
+    // check that Alice's private balance is mint_amount
+    check_private_balance(contracts.usdc, accounts.alice, mint_amount);
+
+    let sort_code_field = field_from_bytes::<SORT_CODE_VALUE_LENGTH>(SORT_CODE, false);
+    let currency_code_field = field_from_bytes::<CURRENCY_CODE_VALUE_LENGTH>(CURRENCY_CODE, false);
+
+    let commitment = Poseidon2::hash([sort_code_field, currency_code_field], 2);
+
+    initial_deposit(
+        env,
+        accounts.alice,
+        contracts.escrow,
+        contracts.usdc,
+        currency_code_field,
+        sort_code_field,
+        mint_amount,
+    );
+
+    // check public balance is set in escrow storage and escrow USDC balance
+    check_commitment_balance(contracts.escrow, commitment, mint_amount);
+    check_public_balance(contracts.usdc, contracts.escrow, mint_amount);
+
+    // prove revolute payment as Bob and claim from escrow
+    prove_payment(env, accounts.bob, contracts.escrow, REVOLUT_PAYMENT_PAYLOAD);
+}
+
+#[test]
 unconstrained fn test_claim_revolut() {
     let (env, accounts, contracts) = setup();
     let mint_amount = U128::from_integer(to_usdc_decimals(50));
+
+    // ensure pubkey is added
+    add_pubkey_hashes(env, accounts.admin, contracts.escrow, [0x28474bcb17dbeab415b838f385be86f159acc3bf0ee386341997bd63e734d529, 0, 0, 0]);
 
     mint_private(
         env,

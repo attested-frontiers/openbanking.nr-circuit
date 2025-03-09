@@ -124,4 +124,4 @@ pub global REVOLUT_PAYMENT_PAYLOAD: OpenbankingVerifierParamsContract = Openbank
 };
 
 pub global CURRENCY_CODE: [u8; CURRENCY_CODE_VALUE_LENGTH] = comptime { "GBP".as_bytes() };
-pub global SORT_CODE: [u8; SORT_CODE_VALUE_LENGTH] = comptime { "04290953215338".as_bytes() };
+pub global SORT_CODE: [u8; SORT_CODE_VALUE_LENGTH] = comptime { "11223321325698".as_bytes() };

@@ -10,6 +10,7 @@ mod utils;
 contract OpenbankingEscrow {
 
     use crate::{
+        utils::hash_pubkey,
         types::{
             escrow_balance::EscrowBalance,
             openbanking::OpenbankingVerifierParamsContract,
@@ -152,7 +153,7 @@ contract OpenbankingEscrow {
         // update public balance
         let escrow_contract = OpenbankingEscrow::at(context.this_address());
         escrow_contract
-            ._apply_payment(openbanking_params.modulus_limbs, escrow_commitment, amount)
+            ._apply_payment(openbanking_params.modulus_limbs, openbanking_params.redc_limbs, escrow_commitment, amount)
             .enqueue(&mut context);
 
         // transfer tokens to claimant's private balance
@@ -262,9 +263,9 @@ contract OpenbankingEscrow {
 
     #[public]
     #[internal]
-    fn _apply_payment(pubkey_limbs: [Field; 18], commitment: Field, amount: U128) {
+    fn _apply_payment(pubkey_limbs: [Field; 18], redc_limbs: [Field; 18], commitment: Field, amount: U128) {
         // check that hash of pubkey is registered
-        let hash = Poseidon2::hash(pubkey_limbs, 18);
+        let hash = hash_pubkey(pubkey_limbs, redc_limbs);
         let stored = storage.pubkey_registry.at(hash).read();
         assert(stored == true, "Pubkey not stored in registry");
 

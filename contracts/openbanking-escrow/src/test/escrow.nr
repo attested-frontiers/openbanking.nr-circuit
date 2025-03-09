@@ -38,7 +38,7 @@ unconstrained fn test_claim_with_invalid_pubkey() {
     let mint_amount = U128::from_integer(to_usdc_decimals(50));
 
     // remove public key
-    revoke_pubkey_hashes(env, accounts.admin, contracts.escrow, [0x28474bcb17dbeab415b838f385be86f159acc3bf0ee386341997bd63e734d529, 0, 0, 0]);
+    revoke_pubkey_hashes(env, accounts.admin, contracts.escrow, [0x03d5fde00c9d82e7d073d1b0552ba3fe3f734ea82caa215fd4a3a882919c557b, 0, 0, 0]);
 
     mint_private(
         env,
@@ -80,7 +80,7 @@ unconstrained fn test_claim_revolut() {
     let mint_amount = U128::from_integer(to_usdc_decimals(50));
 
     // ensure pubkey is added
-    add_pubkey_hashes(env, accounts.admin, contracts.escrow, [0x28474bcb17dbeab415b838f385be86f159acc3bf0ee386341997bd63e734d529, 0, 0, 0]);
+    add_pubkey_hashes(env, accounts.admin, contracts.escrow, [0x03d5fde00c9d82e7d073d1b0552ba3fe3f734ea82caa215fd4a3a882919c557b, 0, 0, 0]);
 
     mint_private(
         env,

@@ -3,11 +3,7 @@ import { AztecAddress, createPXEClient, Fr, waitForPXE } from "@aztec/aztec.js"
 import { OpenbankingEscrowContract } from "./artifacts"
 import { getSingleKeyAccount } from "@aztec/accounts/single_key";
 
-const { PXE_URL } = process.env;
-
-export const addPubkeyHashes = async (adminPrivkey: string, contractAddress: string, keyHashes: string[], pxeUrl: string) => {
-
-    const hashesFr = keyHashes.map(hash => Fr.fromHexString(hash));
+export const addPubkeyHashes = async (adminPrivkey: string, contractAddress: string, pxeUrl: string, keyHashes: string[]) => {
 
     const pxe = createPXEClient(pxeUrl);
     await waitForPXE(pxe);
@@ -17,12 +13,20 @@ export const addPubkeyHashes = async (adminPrivkey: string, contractAddress: str
 
     const escrowContract = await OpenbankingEscrowContract.at(AztecAddress.fromString(contractAddress), adminWallet);
 
-    await escrowContract.methods.add_key_hashes(hashesFr).send().wait();
+    for (let i = 0; i < keyHashes.length; i += 4) {
+        const chunk = [Fr.ZERO, Fr.ZERO, Fr.ZERO, Fr.ZERO]
+        for (let j = 0; j < 4; j++) {
+            if (j + i < keyHashes.length) {
+                chunk[j] = Fr.fromHexString(keyHashes[j + i])
+            }
+        }
+        if (keyHashes.length) {
+            escrowContract.methods.add_key_hashes(chunk).send()
+        }
+    }
 }
 
-export const revokePubkeyHash = async (adminPrivkey: string, contractAddress: string, keyHashes: string[], pxeUrl: string) => {
-    const hashesFr = keyHashes.map(hash => Fr.fromHexString(hash));
-
+export const revokePubkeyHashes = async (adminPrivkey: string, contractAddress: string, pxeUrl: string, keyHashes: string[]) => {
     const pxe = createPXEClient(pxeUrl);
     await waitForPXE(pxe);
 
@@ -31,5 +35,15 @@ export const revokePubkeyHash = async (adminPrivkey: string, contractAddress: st
 
     const escrowContract = await OpenbankingEscrowContract.at(AztecAddress.fromString(contractAddress), adminWallet);
 
-    await escrowContract.methods.add_key_hashes(hashesFr).send().wait();
+    for (let i = 0; i < keyHashes.length; i += 4) {
+        const chunk = [Fr.ZERO, Fr.ZERO, Fr.ZERO, Fr.ZERO]
+        for (let j = 0; j < 4; j++) {
+            if (j + i < keyHashes.length) {
+                chunk[j] = Fr.fromHexString(keyHashes[j + i])
+            }
+        }
+        if (keyHashes.length) {
+            escrowContract.methods.revoke_keys(chunk).send()
+        }
+    }
 }

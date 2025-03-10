@@ -181,6 +181,9 @@ EscrowOwnerNote: {
     /** public_dispatch(selector: field) */
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
+    /** revoke_keys(key_hashes: array) */
+    revoke_keys: ((key_hashes: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
     /** sync_notes() */
     sync_notes: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 

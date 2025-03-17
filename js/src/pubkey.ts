@@ -4,13 +4,20 @@ import { JWK } from 'jose';
 import { X509Certificate } from 'crypto';
 import { BarretenbergSync, Fr } from '@aztec/bb.js';
 import { generatePubkeyParams } from './inputGen';
-// import { poseidon2Hash } from '@aztec/foundation/crypto';
 
 type StoredPubkey = {
   kid: string;
   hash: string;
 }
 
+/**
+ * Gets a list of valid Openbanking pubkeys
+ * 
+ * @param jwksURI - URL that returns a list of valid pubkeys to verify Openbanking payments
+ * @param issuing - issuing certificate for User Agent
+ * @param root - root certiface for User Agent
+ * @returns - list of valid pubkeys
+ */
 export async function getPubkeyHashes(
   jwksURI: string,
   issuing?: string,
@@ -41,16 +48,25 @@ export async function getPubkeyHashes(
   const api = await BarretenbergSync.initSingleton();
   const pubkeyHashes = pubkeys.map((pubkey) => api.poseidon2Hash(compressPubkeyPreimage(pubkey)));
 
-  console.log('pubkeyHashes', pubkeyHashes);
   return pubkeyHashes;
 }
 
+/**
+ * Helper function for the Openbanking.nr server that fetches new pubkey hashes that have not
+ * been stored
+ * 
+ * @param jwksURI - URL that returns a list of valid pubkeys to verify Openbanking payments
+ * @param storedPubkeys - pubkeys that have already been stored inside of server database
+ * @param issuing - issuing certificate for User Agent
+ * @param root - root certificate for User Agent
+ * @returns - New pubkeys that need to be added to DB and revoked pubkeys that need to be removed
+ */
 export async function getUpdatedPubkeyHashes(
   jwksURI: string,
   storedPubkeys: StoredPubkey[],
   issuing?: string,
   root?: string,
-): Promise<any> {
+): Promise<{ newPubkeys: StoredPubkey[], revokedPubkeys: StoredPubkey[] }> {
   // fetch JWKS
   let agentParams = {};
   if (!issuing || !root) {
@@ -80,7 +96,7 @@ export async function getUpdatedPubkeyHashes(
   );
 
   const api = await BarretenbergSync.initSingleton();
-  const pubkeyHashes = pubkeys.map(({ kid, ...pubkeyParams }) => ({ kid, hash: api.poseidon2Hash(compressPubkeyPreimage(pubkeyParams)).toString() }));
+  const pubkeyHashes = pubkeys.map(({ kid, ...pubkeyParams }) => ({ kid: kid ?? '', hash: api.poseidon2Hash(compressPubkeyPreimage(pubkeyParams)).toString() }));
   return {
     newPubkeys: pubkeyHashes,
     revokedPubkeys: storedPubkeys.filter(
@@ -90,6 +106,12 @@ export async function getUpdatedPubkeyHashes(
 }
 
 // @dev ASSUMES 2048 BIT KEY
+/**
+ * Takes pubkey in modulus / redc limb format and compresses it into an Fr
+ * 
+ * @param pubkey - Pubkey in limb format
+ * @returns - compressed pubkey
+ */
 export function compressPubkeyPreimage(pubkey: {
   modulus_limbs: string[]
   redc_limbs: string[]

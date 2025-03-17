@@ -49,6 +49,9 @@ impl OpenbankingVerifierReturn {
         Poseidon2::hash([sort_code, currency_code, salt], 3)
     }
 
+    /**
+     *
+     */
     pub fn parse_amount(self) -> Field {
         // convert amount from bytes to field and add 4 decimals for USDC decimal conversion
         let amount_vec_length = self.amount.len();

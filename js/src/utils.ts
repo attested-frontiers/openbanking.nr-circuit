@@ -1,6 +1,12 @@
 import { MAX_JWT_SIZE } from './constants';
 import { BoundedVec } from './types';
 
+/**
+ * Takes a base64 url string and converts it to bytes
+ * 
+ * @param base64Url - base64 url string
+ * @returns - base64 url as bytes
+ */
 export function base64UrlToBytes(base64Url: string): Uint8Array {
   const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
   const padding = '='.repeat((4 - (base64.length % 4)) % 4);
@@ -8,6 +14,12 @@ export function base64UrlToBytes(base64Url: string): Uint8Array {
   return Uint8Array.from(atob(base64Padded), (c) => c.charCodeAt(0));
 }
 
+/**
+ * Takes a byte array and serializes it to a bigint
+ * 
+ * @param bytes - byte array
+ * @returns bigint representation of bytes
+ */
 export function bytesToBigInt(bytes: Uint8Array): bigint {
   const hex = Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, '0'))
@@ -15,6 +27,14 @@ export function bytesToBigInt(bytes: Uint8Array): bigint {
   return BigInt(`0x${hex}`);
 }
 
+/**
+ * Turns an Uint8Array into a BoundedVec type for input into a noir circuit
+ * 
+ * @param data - data passed in to convert to BoundedVec storage
+ * @param maxLength - maximum length the BoundedVec can be
+ * @param fillVal - value to pad add end of storage past data length
+ * @returns - BoundedVed representation of array
+ */
 export function toBoundedVec(
   data: Uint8Array,
   maxLength: number,
@@ -30,6 +50,12 @@ export function toBoundedVec(
   return { storage, len: data.length.toString() };
 }
 
+/**
+ * Transforms an Object representation of circuit inputs into TOML format
+ * 
+ * @param inputs - Circuit inputs in Javascript object format
+ * @returns - Inputs in TOML format inside of a string
+ */
 export function toProverToml(inputs: Object): string {
   const lines = [];
   const structs = [];
@@ -56,6 +82,12 @@ export function toProverToml(inputs: Object): string {
   return lines.concat(structs).join('\n');
 }
 
+/**
+ * Serializes a Uint8Array to a Uint32Array
+ * 
+ * @param input - a Uint8Array
+ * @returns - a Uint32Array
+ */
 export function u8ToU32(input: Uint8Array): Uint32Array {
   const out = new Uint32Array(input.length / 4);
   for (let i = 0; i < out.length; i++) {

@@ -6,7 +6,6 @@ import {
 import { getSingleKeyAccount } from '@aztec/accounts/single_key';
 import { TokenContract } from '@aztec/noir-contracts.js/Token';
 import { OpenbankingEscrowContract } from './artifacts/contracts/OpenbankingEscrow.js';
-// import TokenContractArtifactJson from "@aztec/noir-contracts.js/artifacts/token_contract-Token.json" assert { type: 'json' };
 
 const USDC_TOKEN = {
     symbol: 'USDC',
@@ -14,6 +13,9 @@ const USDC_TOKEN = {
     decimals: 6,
 };
 
+/**
+ * Deploys a new token contract and escrow contract to the specified PXE URL
+ */
 const deploy = async () => {
     // const pxe = createPXEClient('https://pxe.obsidion.xyz');
     const pxe = createPXEClient('http://localhost:8080');

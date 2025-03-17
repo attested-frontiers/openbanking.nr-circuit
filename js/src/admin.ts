@@ -3,6 +3,14 @@ import { AztecAddress, createPXEClient, Fr, waitForPXE } from "@aztec/aztec.js"
 import { OpenbankingEscrowContract } from "./artifacts"
 import { getSingleKeyAccount } from "@aztec/accounts/single_key";
 
+/**
+ * Takes a list of new pubkey hashes and marks them as valid in the escrow smart contract
+ * 
+ * @param adminPrivkey - Priavte key of the admin account that controls the token and escrow contracts
+ * @param contractAddress - Address of the escrow contract
+ * @param pxeUrl - URL of the pxe with the deployed contracts
+ * @param keyHashes - Hashes of pubkeys to set as valid 
+ */
 export const addPubkeyHashes = async (adminPrivkey: string, contractAddress: string, pxeUrl: string, keyHashes: string[]) => {
 
     const pxe = createPXEClient(pxeUrl);
@@ -26,6 +34,14 @@ export const addPubkeyHashes = async (adminPrivkey: string, contractAddress: str
     }
 }
 
+/**
+ * Takes a list of revoked pubkey hashes and marks them invalid in the escrow smart contract
+ * 
+ * @param adminPrivkey - Priavte key of the admin account that controls the token and escrow contracts
+ * @param contractAddress - Address of the escrow contract
+ * @param pxeUrl - URL of the pxe with the deployed contracts
+ * @param keyHashes - Hashes of pubkeys to revoke 
+ */
 export const revokePubkeyHashes = async (adminPrivkey: string, contractAddress: string, pxeUrl: string, keyHashes: string[]) => {
     const pxe = createPXEClient(pxeUrl);
     await waitForPXE(pxe);

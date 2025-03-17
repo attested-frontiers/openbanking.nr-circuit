@@ -11,6 +11,12 @@ import {
 } from './types';
 import { bytesToBigInt, base64UrlToBytes, toBoundedVec, u8ToU32 } from './utils';
 
+/**
+ * Takes a pubkey in KeyObject format and transforms it to a Noir friendly format
+ * 
+ * @param pubkey - pubkey as KeyObject
+ * @returns - pubkey as modulus limbs and reduction limbs
+ */
 export function generatePubkeyParams(pubkey: KeyObject): {
   modulus_limbs: string[]
   redc_limbs: string[]
@@ -27,6 +33,14 @@ export function generatePubkeyParams(pubkey: KeyObject): {
   };
 }
 
+/**
+ * Transforms parameters of a valid Openbanking payment into inputs for the Openbanking.nr verifier circuit
+ * 
+ * @param payload - concatenation of the base64 encoded JWT header and the payment payload used to verify the signature
+ * @param signature - signature over Openbanking payment
+ * @param publicKey - valid pubkey used to verify Openbanking payment
+ * @returns - noir inputs to be fed into Openbanking.nr verifier circuit
+ */
 export function generateNoirInputs(
   payload: string,
   signature: string,
@@ -48,10 +62,6 @@ export function generateNoirInputs(
     32
   );
 
-  // parse out nested JSON values
-  const payloadData = payload.slice(headerDelimiterIndex + 1);
-  const payloadParsed = JSON.parse(payloadData);
-
   // compute partial hash of header
   const partialHashStart = partialSha(
     encoder.encode(payload.slice(0, hashToIndex)),
@@ -68,13 +78,21 @@ export function generateNoirInputs(
   };
 }
 
+/**
+ * Generates inputs for Openbanking.nr claim_payment structure
+ * 
+ * @param payload - concatenation of the base64 encoded JWT header and the payment payload used to verify the signature
+ * @param signature - signature over Openbanking payment
+ * @param modulus_limbs - modulus limbs of the pubkey used to verify the Openbanking payment
+ * @param redc_limbs - reduction limbs of the pubkey used to verify the Openbanking payment
+ * @returns - smart contract inputs for claim payment in Aztec smart contract
+ */
 export function generateAztecInputs(
   payload: string,
   signature: string,
   modulus_limbs: string[],
   redc_limbs: string[]
 ): OpenBankingDomesticContractInputs {
-  // const { modulus_limbs, redc_limbs } = generatePubkeyParams(publicKey);
   const signature_limbs = NoirBignum.bnToLimbStrArray(signature);
 
   // extract payload data
@@ -89,10 +107,6 @@ export function generateAztecInputs(
     MAX_PAYLOAD_SIZE,
     32
   );
-
-  // parse out nested JSON values
-  const payloadData = payload.slice(headerDelimiterIndex + 1);
-  const payloadParsed = JSON.parse(payloadData);
 
   // compute partial hash of header
   const partialHashStart = partialSha(
@@ -111,7 +125,12 @@ export function generateAztecInputs(
   };
 }
 
-// : OpenBankingDomesticCircuitOutputs
+/**
+ * Decodes outputs from Openbanking.nr payment verifier circuit
+ * 
+ * @param outputs - outputs Openbanking.nr verifier circuit
+ * @returns - decoded Openbanking.nr verifier circuit outputs
+ */
 export function decodeNoirOutputs(outputs: InputValue) {
   const outputRaw = outputs as OpenBankingDomesticCircuitOutputsRaw;
   const amountRaw = outputRaw.amount.storage.slice(

@@ -17,6 +17,11 @@ pub struct EscrowBalance {
 
 impl EscrowBalance {
 
+    /**
+     * Create a new escrow balance
+     *
+     * @param balance - initial balance of the escrow position
+     */
     pub fn new(balance: U128) -> Self {
         EscrowBalance {
             balance,
@@ -78,7 +83,7 @@ impl EscrowBalance {
      * @dev can be overwritten if bad withdrawal request already made
      *
      * @param amount - the amount of funds to withdraw from the escrow
-     * @par
+     * @param
      */
     pub fn mark_for_withdrawal(&mut self, amount: U128, block_number: Field) {
         assert(self.balance >= amount, "Amount to withdraw exceeds escrow balance");

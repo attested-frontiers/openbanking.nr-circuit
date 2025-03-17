@@ -50,7 +50,9 @@ impl OpenbankingVerifierReturn {
     }
 
     /**
-     *
+     * Convert payment amount as bytes to number 
+     * 
+     * @return - amount as number
      */
     pub fn parse_amount(self) -> Field {
         // convert amount from bytes to field and add 4 decimals for USDC decimal conversion
@@ -68,6 +70,11 @@ impl OpenbankingVerifierReturn {
         converted * 10.pow_32(4)
     }
 
+    /**
+     * Computes a nullifier from payment id
+     * 
+     * @return - nullifier
+     */
     pub fn payment_nullifier(self) -> Field {
         let payment_id_packed = pack_bytes::<PAYMENT_ID_LENGTH>(self.payment_id);
         Poseidon2::hash(payment_id_packed, 2)
@@ -75,6 +82,11 @@ impl OpenbankingVerifierReturn {
 }
 
 // todo: from nodash, need to use dep when updated
+/**
+ * Packs a byte array into an array of Fields
+ * 
+ * @return - packed bytes
+ */
 fn pack_bytes<let N: u32>(bytes: [u8; N]) -> [Field; N / 31 + 1] {
     let bytes_padded = bytes.pad_end::<(N / 31 + 1) * 31>(0);
     let mut res = [0 as Field; N / 31 + 1];

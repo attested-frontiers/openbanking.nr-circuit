@@ -1,5 +1,13 @@
 use aztec::protocol_types::utils::field::field_from_bytes;
 use std::hash::poseidon2::Poseidon2;
+
+
+/**
+* Convert payment amount as bytes to number 
+*
+* @param amount_value - payment amount
+* @return - payment amount in number
+*/
 pub fn bytes_to_num<let MAX_AMOUNT_VALUE_LENGTH: u32>(
     amount_value: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH>,
 ) -> U128 {
@@ -18,7 +26,13 @@ pub fn bytes_to_num<let MAX_AMOUNT_VALUE_LENGTH: u32>(
 }
 
 
-
+/**
+* Creates a poseidon hash of a pubkey
+*
+* @param modulus - limb format of pubkey modulus
+* @param rec - limb format of pubkey reduction paramets
+* @return - hash of the pubkey
+*/
 pub fn hash_pubkey(modulus: [Field; 18], redc: [Field; 18]) -> Field {
     let mut dkim_preimage: [Field; 18] = [0; 18];
     for i in 0..9 {

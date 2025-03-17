@@ -17,6 +17,12 @@ pub struct OpenbankingVerifierParamsContract {
 }
 
 impl OpenbankingVerifierParamsContract {
+    /**
+     * Transforms circuit friendly inputs into contract friendly inputs since Aztec smart contracts
+     * don't support BoundedVecs as contract inputs
+     *
+     * @param params - Openbanking.nr verifier circuit
+     */
     fn unmarshal(params: OpenbankingVerifierParams) -> Self {
         Self {
             signature_limbs: params.signature_limbs,
@@ -29,6 +35,11 @@ impl OpenbankingVerifierParamsContract {
         }
     }
 
+    /**
+     * Transforms contract friendly inputs into Openbanking.nr verifier circuit friendly inputs
+     *
+     * @param params - Openbanking.nr verifier circuit
+     */
     fn marshal(self) -> OpenbankingVerifierParams {
         // check that payload sequence falls within specified length
         for i in 0..MAX_PAYLOAD_LENGTH {

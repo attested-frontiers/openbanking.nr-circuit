@@ -44,6 +44,13 @@ impl NullifiableNote for EscrowOwnerNote {
 }
 
 impl EscrowOwnerNote {
+    /**
+     * Create a new escrow owner note
+     *
+     * @param commitment - hash of user sort code and currency code
+     * @param randomness - note randomness
+     * @param owner - owner of the note
+     */
     pub fn new(commitment: Field, randomness: Field, owner: AztecAddress) -> Self {
         EscrowOwnerNote { commitment, randomness, owner, header: NoteHeader::empty() }
     }

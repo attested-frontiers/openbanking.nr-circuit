@@ -3,6 +3,7 @@
 ## Components
 
 ### 1. Openbanking Verifier Circuit
+---
 
 Circuit used for verifying payments using the Openbanking standard
  - Verifies PS256 signature over the payment payload
@@ -51,6 +52,7 @@ node index.js
 ```
 
 ### 2. Openbanking Escrow Contract
+---
 
 Functions as a non-custodial onramp powered through payments using the Openbanking standard
 
@@ -63,6 +65,8 @@ Functions as a non-custodial onramp powered through payments using the Openbanki
    
 
 ### 3. Typescript Library
+---
+
 Typescript library used for generating circuit inputs and exporting utility functions relevant to circuit / contract
 
 #### Installation

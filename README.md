@@ -23,11 +23,17 @@ Circuit used for verifying payments using the Openbanking standard
  - `payment_id` - unqiue ID of payment, useful when preventing double spends
 - `sort_code` - sort code of creditor account
 
-#### Usage
+#### Example
 ```rust
 fn main(params: OpenbankingVerifierParams) -> pub OpenbankingVerifierReturn {
     verify_openbanking_payment(params)
 }
+```
+
+#### Usage
+To import into you project you can provider the following line to your Nargo.toml
+```
+openbanking_verifier = { git = "https://github.com/Mach-34/openbanking-circuit/tree/feat/add-comments", directory = "./lib" }
 ```
 
 #### Run test from CLI

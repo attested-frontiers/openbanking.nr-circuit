@@ -21,19 +21,3 @@ pub global INSTRUCTED_AMOUNT_KEY: [u8; 16] = comptime { "InstructedAmount".as_by
 pub global PAYLOAD_DATA_KEY: [u8; 4] = comptime { "Data".as_bytes() };
 pub global PAYMENT_ID_KEY: [u8; PAYMENT_ID_KEY_LENGTH] = comptime { "DomesticPaymentId".as_bytes() };
 pub global SORT_CODE_KEY: [u8; SORT_CODE_KEY_LENGTH] = comptime { "Identification".as_bytes() };
-
-pub struct OpenbankingVerifierReturn {
-    amount: BoundedVec<u8, MAX_AMOUNT_VALUE_LENGTH>,
-    currency_code: [u8; CURRENCY_CODE_VALUE_LENGTH],
-    payment_id: [u8; PAYMENT_ID_LENGTH],
-    sort_code: [u8; SORT_CODE_VALUE_LENGTH],
-}
-
-pub struct OpenbankingVerifierParams {
-    signature_limbs: [Field; 18],
-    modulus_limbs: [Field; 18],
-    redc_limbs: [Field; 18],
-    partial_hash_start: [u32; 8],
-    header_delimiter_index: u32,
-    payload: BoundedVec<u8, MAX_PAYLOAD_LENGTH>,
-}

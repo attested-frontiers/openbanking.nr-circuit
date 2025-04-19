@@ -1,12 +1,9 @@
-use std::hash::poseidon2::Poseidon2;
-
 use crate::constants::{
-    MAX_PAYLOAD_LENGTH,
-    MAX_AMOUNT_VALUE_LENGTH,
-    CURRENCY_CODE_VALUE_LENGTH,
-    PAYMENT_ID_LENGTH,
-    SORT_CODE_VALUE_LENGTH
+    CURRENCY_CODE_VALUE_LENGTH, MAX_AMOUNT_VALUE_LENGTH, MAX_PAYLOAD_LENGTH, PAYMENT_ID_LENGTH,
+    SORT_CODE_VALUE_LENGTH,
 };
+use nodash::ArrayExtensions;
+use std::hash::poseidon2::Poseidon2;
 
 pub struct OpenbankingVerifierParams {
     signature_limbs: [u128; 18],
@@ -54,7 +51,7 @@ impl OpenbankingVerifierReturn {
      * 
      * @return - amount as number
      */
-    pub fn parse_amount(self) -> Field {
+    pub fn parse_amount(self) -> u128 {
         // convert amount from bytes to field and add 4 decimals for USDC decimal conversion
         let amount_vec_length = self.amount.len();
         let mut converted: Field = 0;
@@ -67,7 +64,7 @@ impl OpenbankingVerifierReturn {
                 pow = pow / 10;
             }
         }
-        converted * 10.pow_32(4)
+        (converted * 10.pow_32(4)) as u128
     }
 
     /**

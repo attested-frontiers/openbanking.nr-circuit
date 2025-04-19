@@ -1,4 +1,4 @@
-global REVOLUT_MODULI: [[Field; 18]; 5] = [
+global REVOLUT_MODULI: [[u128; 18]; 5] = [
         [
             0x9f76c1ec6d8f1d11666b8e9210bfc1,
             0x9faaf8b168eaf3873403ee08847e66,
@@ -101,7 +101,7 @@ global REVOLUT_MODULI: [[Field; 18]; 5] = [
         ]
     ];
 
-global REVOLUT_REDCS: [[Field; 18]; 5] = [
+global REVOLUT_REDCS: [[u128; 18]; 5] = [
     [
             0x20536aa29207bb7a575cd98121ee02,
             0xb47be4193844aa326612ef6433f9f6,

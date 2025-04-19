@@ -14,7 +14,7 @@ pub fn withdraw_tokens(
     context: &mut PrivateContext,
     token: AztecAddress,
     recipient: AztecAddress,
-    amount: U128
+    amount: u128
 ) {
     let token_contract = Token::at(token);
     let hiding_point_slot = token_contract

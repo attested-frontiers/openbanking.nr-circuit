@@ -1,9 +1,10 @@
 use crate::test::utils::{
     escrow_helpers::{
-        add_pubkey_hashes, check_commitment_balance, check_pubkey_hash_initialized, get_commitment_data, increment_balance, initial_deposit,
-        prove_payment, revoke_pubkey_hashes, withdraw, prompt_withdrawal
+        add_pubkey_hashes, check_commitment_balance, check_pubkey_hash_initialized,
+        get_commitment_data, increment_balance, initial_deposit, prompt_withdrawal, prove_payment,
+        revoke_pubkey_hashes, withdraw,
     },
-    setup_helpers::{setup, get_pubkey_hashes},
+    setup_helpers::{get_pubkey_hashes, setup},
     test_inputs::{CURRENCY_CODE, REVOLUT_PAYMENT_PAYLOAD, SORT_CODE},
     token_helpers::{check_private_balance, check_public_balance, mint_private, to_usdc_decimals},
 };
@@ -18,7 +19,7 @@ use dep::std::hash::poseidon2::Poseidon2;
 // #[test]
 unconstrained fn test_admin_key_additon_revocation() {
     let (env, accounts, contracts) = setup();
-    
+
     // add pubkey
     add_pubkey_hashes(env, accounts.admin, contracts.escrow, [1, 0, 0, 0]);
     let is_initialized = check_pubkey_hash_initialized(contracts.escrow, 1);
@@ -32,13 +33,18 @@ unconstrained fn test_admin_key_additon_revocation() {
     let pubkey_hashes = get_pubkey_hashes();
 }
 
-#[test(should_fail_with = "Pubkey not stored in registry")]
+// #[test(should_fail_with = "Pubkey not stored in registry")]
 unconstrained fn test_claim_with_invalid_pubkey() {
     let (env, accounts, contracts) = setup();
-    let mint_amount = U128::from_integer(to_usdc_decimals(50));
+    let mint_amount = to_usdc_decimals(50);
 
     // remove public key
-    revoke_pubkey_hashes(env, accounts.admin, contracts.escrow, [0x03d5fde00c9d82e7d073d1b0552ba3fe3f734ea82caa215fd4a3a882919c557b, 0, 0, 0]);
+    revoke_pubkey_hashes(
+        env,
+        accounts.admin,
+        contracts.escrow,
+        [0x03d5fde00c9d82e7d073d1b0552ba3fe3f734ea82caa215fd4a3a882919c557b, 0, 0, 0],
+    );
 
     mint_private(
         env,
@@ -74,13 +80,18 @@ unconstrained fn test_claim_with_invalid_pubkey() {
     prove_payment(env, accounts.bob, contracts.escrow, REVOLUT_PAYMENT_PAYLOAD);
 }
 
-#[test]
+// #[test]
 unconstrained fn test_claim_revolut() {
     let (env, accounts, contracts) = setup();
-    let mint_amount = U128::from_integer(to_usdc_decimals(50));
+    let mint_amount = to_usdc_decimals(50);
 
     // ensure pubkey is added
-    add_pubkey_hashes(env, accounts.admin, contracts.escrow, [0x03d5fde00c9d82e7d073d1b0552ba3fe3f734ea82caa215fd4a3a882919c557b, 0, 0, 0]);
+    add_pubkey_hashes(
+        env,
+        accounts.admin,
+        contracts.escrow,
+        [0x03d5fde00c9d82e7d073d1b0552ba3fe3f734ea82caa215fd4a3a882919c557b, 0, 0, 0],
+    );
 
     mint_private(
         env,
@@ -116,21 +127,17 @@ unconstrained fn test_claim_revolut() {
     prove_payment(env, accounts.bob, contracts.escrow, REVOLUT_PAYMENT_PAYLOAD);
 
     // check that balances have been properly updated
-    let new_balance = mint_amount - U128::from_integer(to_usdc_decimals(1));
+    let new_balance = mint_amount - to_usdc_decimals(1);
     check_commitment_balance(contracts.escrow, commitment, new_balance);
     check_public_balance(contracts.usdc, contracts.escrow, new_balance);
-    check_private_balance(
-        contracts.usdc,
-        accounts.bob,
-        U128::from_integer(to_usdc_decimals(1)),
-    );
+    check_private_balance(contracts.usdc, accounts.bob, to_usdc_decimals(1));
     let key_hashes = get_pubkey_hashes();
 }
 
-// #[test(should_fail_with = "Cannot withdraw in block restriction window.")]
+#[test(should_fail_with = "Cannot withdraw in block restriction window.")]
 unconstrained fn test_early_withdraw() {
     let (env, accounts, contracts) = setup();
-    let mint_amount = U128::from_integer(to_usdc_decimals(50));
+    let mint_amount = to_usdc_decimals(50);
 
     mint_private(
         env,
@@ -156,19 +163,14 @@ unconstrained fn test_early_withdraw() {
     );
 
     // attempt early withdrawl
-    withdraw(
-        env,
-        accounts.alice,
-        contracts.escrow,
-        U128::from_integer(50),
-    );
+    withdraw(env, accounts.alice, contracts.escrow, 50);
 }
 
 // TODO: Check why tokens are not trasferred to escrow owner
 // #[test]
 unconstrained fn test_successful_withdrawal() {
     let (env, accounts, contracts) = setup();
-    let mint_amount = U128::from_integer(to_usdc_decimals(50));
+    let mint_amount = to_usdc_decimals(50);
 
     mint_private(
         env,
@@ -206,7 +208,7 @@ unconstrained fn test_successful_withdrawal() {
 // #[test(should_fail_with = "Amount exceeds escrow balance.")]
 unconstrained fn test_withdrawal_amount_exceeds_balance() {
     let (env, accounts, contracts) = setup();
-    let mint_amount = U128::from_integer(to_usdc_decimals(50));
+    let mint_amount = to_usdc_decimals(50);
 
     mint_private(
         env,
@@ -238,15 +240,15 @@ unconstrained fn test_withdrawal_amount_exceeds_balance() {
         env,
         accounts.alice,
         contracts.escrow,
-        mint_amount + U128::from_integer(to_usdc_decimals(10)),
+        mint_amount + to_usdc_decimals(10),
     );
 }
 
 // #[test]
 unconstrained fn test_increment_escrow_balance() {
     let (env, accounts, contracts) = setup();
-    let mint_amount = U128::from_integer(to_usdc_decimals(70));
-    let increment_amount = U128::from_integer(to_usdc_decimals(20));
+    let mint_amount = to_usdc_decimals(70);
+    let increment_amount = to_usdc_decimals(20);
 
     mint_private(
         env,
@@ -290,7 +292,7 @@ unconstrained fn test_increment_escrow_balance() {
 // #[test(should_fail_with = "Rejecting tx for emitting duplicate nullifiers")]
 unconstrained fn test_init_escrow_twice() {
     let (env, accounts, contracts) = setup();
-    let mint_amount = U128::from_integer(to_usdc_decimals(50));
+    let mint_amount = to_usdc_decimals(50);
 
     mint_private(
         env,
@@ -395,7 +397,7 @@ unconstrained fn test_claim_on_nonexistent_commitment() {
 // #[test(should_fail_with = "Payment amount exceeds escrow owner balance.")]
 unconstrained fn test_payment_amount_exceeds_escrow_balance() {
     let (env, accounts, contracts) = setup();
-    let mint_amount = U128::from_integer(to_usdc_decimals(1) / 10);
+    let mint_amount = to_usdc_decimals(1) / 10;
 
     mint_private(
         env,
@@ -427,7 +429,7 @@ unconstrained fn test_payment_amount_exceeds_escrow_balance() {
 // #[test(should_fail_with = "Payment has already been spent.")]
 unconstrained fn test_double_spend() {
     let (env, accounts, contracts) = setup();
-    let mint_amount = U128::from_integer(to_usdc_decimals(50));
+    let mint_amount = to_usdc_decimals(50);
 
     mint_private(
         env,

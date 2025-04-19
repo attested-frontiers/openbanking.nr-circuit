@@ -7,9 +7,9 @@ use openbanking_verifier::{
 
 #[derive(Serialize)]
 pub struct OpenbankingVerifierParamsContract {
-    signature_limbs: [Field; 18],
-    modulus_limbs: [Field; 18],
-    redc_limbs: [Field; 18],
+    signature_limbs: [u128; 18],
+    modulus_limbs: [u128; 18],
+    redc_limbs: [u128; 18],
     partial_hash_start: [u32; 8],
     header_delimiter_index: u32,
     payload: [u8; MAX_PAYLOAD_LENGTH],

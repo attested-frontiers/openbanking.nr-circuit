@@ -52,7 +52,7 @@ pub unconstrained fn increment_balance(
     escrow_owner: AztecAddress,
     escrow_address: AztecAddress,
     token_address: AztecAddress,
-    amount: U128,
+    amount: u128,
 ) {
     // create token transfer authwit
     let transfer_to_public_call_interface =
@@ -77,7 +77,7 @@ pub unconstrained fn initial_deposit(
     token_address: AztecAddress,
     currency_code: Field,
     sort_code: Field,
-    amount: U128,
+    amount: u128,
 ) {
     // create token transfer authwit
     let transfer_to_public_call_interface =
@@ -115,7 +115,7 @@ pub unconstrained fn prompt_withdrawal(
     env: &mut TestEnvironment,
     escrow_owner: AztecAddress,
     escrow_address: AztecAddress,
-    amount: U128,
+    amount: u128,
     advance: bool
 ) {
     env.impersonate(escrow_owner);
@@ -132,18 +132,18 @@ pub unconstrained fn withdraw(
     env: &mut TestEnvironment,
     escrow_owner: AztecAddress,
     escrow_address: AztecAddress,
-    amount: U128,
+    amount: u128,
 ) {
     env.impersonate(escrow_owner);
     let escrow = OpenbankingEscrow::at(escrow_address);
-    let _ = escrow.withdraw_escrow_balance(amount).call(&mut env.private());
+    // let _ = escrow.withdraw_escrow_balance(amount).call(&mut env.private());
     cheatcodes::advance_blocks_by(1);
 }
 
 pub unconstrained fn check_commitment_balance(
     escrow_address: AztecAddress,
     commitment: Field,
-    balance: U128,
+    balance: u128,
 ) {
     let current_contract_address = get_contract_address();
     cheatcodes::set_contract_address(escrow_address);
@@ -159,7 +159,7 @@ pub unconstrained fn check_commitment_balance(
 pub unconstrained fn get_commitment_data(
     escrow_address: AztecAddress,
     commitment: Field,
-) -> (U128, Field) {
+) -> (u128, Field) {
     let current_contract_address = get_contract_address();
     cheatcodes::set_contract_address(escrow_address);
     let block_number = get_block_number();

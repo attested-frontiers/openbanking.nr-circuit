@@ -36,8 +36,8 @@ pub unconstrained fn setup() -> (&mut TestEnvironment, TestAccounts, TestContrac
     // deploy the token contract
     let usdc_address = deploy_token_contract(&mut env, accounts.admin);
 
-    let escrow_address = deploy_escrow_with_pubkey_hashes(&mut env, accounts.admin, usdc_address);
-    // let escrow_address = deploy_escrow_contract(&mut env, accounts.admin, usdc_address, [0, 0, 0, 0]);
+    // let escrow_address = deploy_escrow_with_pubkey_hashes(&mut env, accounts.admin, usdc_address);
+    let escrow_address = deploy_escrow_contract(&mut env, accounts.admin, usdc_address, [0, 0, 0, 0]);
 
     // return setup params
     (&mut env, accounts, TestContracts { usdc: usdc_address, escrow: escrow_address })

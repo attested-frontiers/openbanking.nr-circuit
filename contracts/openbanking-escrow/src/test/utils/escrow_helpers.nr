@@ -1,7 +1,14 @@
-use crate::{OpenbankingEscrow, types::{escrow_balance::EscrowBalance, openbanking::OpenbankingVerifierParamsContract}};
+use crate::{
+    OpenbankingEscrow,
+    types::{escrow_balance::EscrowBalance, openbanking::OpenbankingVerifierParamsContract},
+};
 use authwit::cheatcodes as authwit_cheatcodes;
 use aztec::{
-    oracle::{execution::{get_block_number, get_contract_address}, storage::storage_read, random::random},
+    oracle::{
+        execution::{get_block_number, get_contract_address},
+        random::random,
+        storage::storage_read,
+    },
     prelude::AztecAddress,
     protocol_types::storage::map::derive_storage_slot_in_map,
     test::helpers::{cheatcodes, test_environment::TestEnvironment},
@@ -12,7 +19,7 @@ pub unconstrained fn add_pubkey_hashes(
     env: &mut TestEnvironment,
     admin: AztecAddress,
     escrow_address: AztecAddress,
-    pubkey_hashes: [Field; 4]
+    pubkey_hashes: [Field; 4],
 ) {
     env.impersonate(admin);
     let escrow = OpenbankingEscrow::at(escrow_address);
@@ -24,7 +31,7 @@ pub unconstrained fn revoke_pubkey_hashes(
     env: &mut TestEnvironment,
     admin: AztecAddress,
     escrow_address: AztecAddress,
-    pubkey_hashes: [Field; 4]
+    pubkey_hashes: [Field; 4],
 ) {
     env.impersonate(admin);
     let escrow = OpenbankingEscrow::at(escrow_address);
@@ -42,7 +49,8 @@ pub unconstrained fn check_pubkey_hash_initialized(
 
     let balances_slot = OpenbankingEscrow::storage_layout().pubkey_registry.slot;
     let pubkey_hash_slot = derive_storage_slot_in_map(balances_slot, hash);
-    let pubkey_hash_initialized: bool = storage_read(escrow_address, pubkey_hash_slot, block_number);
+    let pubkey_hash_initialized: bool =
+        storage_read(escrow_address, pubkey_hash_slot, block_number);
     cheatcodes::set_contract_address(current_contract_address);
     pubkey_hash_initialized
 }
@@ -92,7 +100,7 @@ pub unconstrained fn initial_deposit(
     env.impersonate(escrow_owner);
     let escrow = OpenbankingEscrow::at(escrow_address);
     // TODO: Add actual randomness
-    let randomness = unsafe { random()};
+    let randomness = unsafe { random() };
     let _ = escrow.init_escrow_balance(sort_code, currency_code, amount, randomness).call(
         &mut env.private(),
     );
@@ -116,7 +124,7 @@ pub unconstrained fn prompt_withdrawal(
     escrow_owner: AztecAddress,
     escrow_address: AztecAddress,
     amount: u128,
-    advance: bool
+    advance: bool,
 ) {
     env.impersonate(escrow_owner);
     let escrow = OpenbankingEscrow::at(escrow_address);
@@ -136,7 +144,7 @@ pub unconstrained fn withdraw(
 ) {
     env.impersonate(escrow_owner);
     let escrow = OpenbankingEscrow::at(escrow_address);
-    // let _ = escrow.withdraw_escrow_balance(amount).call(&mut env.private());
+    let _ = escrow.withdraw_escrow_balance(amount).call(&mut env.private());
     cheatcodes::advance_blocks_by(1);
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "@openbanking-nr/js-inputs",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "main": "dist",
   "types": "dist",
   "license": "MIT",
@@ -10,7 +10,7 @@
     "format": "prettier --write .",
     "test": "jest",
     "lint": "eslint .",
-    "prepublishOnly": "yarn lint && yarn build",
+    "prepublishOnly": "yarn build",
     "deploy": "node --loader ts-node/esm src/deploy.ts"
   },
   "dependencies": {

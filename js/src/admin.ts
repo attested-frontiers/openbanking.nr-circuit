@@ -1,7 +1,7 @@
 
 import { AztecAddress, createPXEClient, Fr, waitForPXE } from "@aztec/aztec.js"
 import { OpenbankingEscrowContract } from "./artifacts"
-import { getSingleKeyAccount } from "@aztec/accounts/single_key";
+import { getUnsafeSchnorrAccount } from "@aztec/accounts/single_key";
 
 /**
  * Takes a list of new pubkey hashes and marks them as valid in the escrow smart contract
@@ -16,7 +16,7 @@ export const addPubkeyHashes = async (adminPrivkey: string, contractAddress: str
     const pxe = createPXEClient(pxeUrl);
     await waitForPXE(pxe);
 
-    const admin = await getSingleKeyAccount(pxe, Fr.fromHexString(adminPrivkey), 0);
+    const admin = await getUnsafeSchnorrAccount(pxe, Fr.fromHexString(adminPrivkey), 0);
     const adminWallet = await admin.waitSetup();
 
     const escrowContract = await OpenbankingEscrowContract.at(AztecAddress.fromString(contractAddress), adminWallet);
@@ -46,7 +46,7 @@ export const revokePubkeyHashes = async (adminPrivkey: string, contractAddress: 
     const pxe = createPXEClient(pxeUrl);
     await waitForPXE(pxe);
 
-    const admin = await getSingleKeyAccount(pxe, Fr.fromHexString(adminPrivkey), 0);
+    const admin = await getUnsafeSchnorrAccount(pxe, Fr.fromHexString(adminPrivkey), 0);
     const adminWallet = await admin.waitSetup();
 
     const escrowContract = await OpenbankingEscrowContract.at(AztecAddress.fromString(contractAddress), adminWallet);

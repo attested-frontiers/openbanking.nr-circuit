@@ -3,7 +3,7 @@ import {
     Fr,
     waitForPXE,
 } from '@aztec/aztec.js';
-import { getSingleKeyAccount } from '@aztec/accounts/single_key';
+import { getUnsafeSchnorrAccount } from '@aztec/accounts/single_key';
 import { TokenContract } from '@aztec/noir-contracts.js/Token';
 import { OpenbankingEscrowContract } from './artifacts/contracts/OpenbankingEscrow.js';
 
@@ -22,7 +22,7 @@ const deploy = async () => {
     await waitForPXE(pxe);
 
     // @ts-ignore
-    const admin = await getSingleKeyAccount(pxe, Fr.random(), 0);
+    const admin = await getUnsafeSchnorrAccount(pxe, Fr.random(), 0);
     const adminWallet = await admin.waitSetup();
 
     const token = await TokenContract.deploy(

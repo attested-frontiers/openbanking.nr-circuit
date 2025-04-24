@@ -11,7 +11,7 @@
     "test": "jest",
     "lint": "eslint .",
     "prepublishOnly": "yarn build",
-    "deploy": "node --loader ts-node/esm src/deploy.ts"
+    "deploy": "node --loader ts-node/esm src/deploy/index.ts"
   },
   "dependencies": {
     "@aztec/accounts": "=0.85.0-alpha-testnet.2",

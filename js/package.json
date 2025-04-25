@@ -10,8 +10,9 @@
     "format": "prettier --write .",
     "test": "jest",
     "lint": "eslint .",
-    "prepublishOnly": "yarn build",
-    "deploy": "node --loader ts-node/esm src/deploy/index.ts"
+    "prepublishOnly": "yarn lint && yarn build",
+    "deploy": "node --loader ts-node/esm src/deploy.ts",
+    "preinstall": "./preinstall.sh"
   },
   "dependencies": {
     "@aztec/accounts": "=0.85.0-alpha-testnet.2",
@@ -21,6 +22,7 @@
     "@noir-lang/noirc_abi": "=1.0.0-beta.1",
     "@types/axios": "^0.14.4",
     "@zk-email/helpers": "^6.3.2",
+    "aztec-scan-sdk": "file:node_modules/aztec-scan-sdk",
     "axios": "^1.7.9",
     "jose": "^5.9.6"
   },

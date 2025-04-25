@@ -48,7 +48,7 @@ export const deployTokenContract = async (adminWallet: AccountWalletWithSecretKe
         .deployed();
 }
 
-const getSponsoredFPCInstance = async (): Promise<ContractInstanceWithAddress> => {
+export const getSponsoredFPCInstance = async (): Promise<ContractInstanceWithAddress> => {
     return await getContractInstanceFromDeployParams(SponsoredFPCContract.artifact, {
         salt: new Fr(SPONSORED_FPC_SALT),
     });

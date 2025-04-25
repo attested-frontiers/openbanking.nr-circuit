@@ -7,7 +7,7 @@ import {
     waitForPXE,
 } from '@aztec/aztec.js';
 import { getSchnorrAccount } from '@aztec/accounts/schnorr';
-import { getDeployedSponsoredFPCAddress, deployEscrowContract, deployTokenContract, getSponsoredFPCInstance } from './helpers.js'
+import { getDeployedSponsoredFPCAddress, deployEscrowContract, deployTokenContract, getSponsoredFPCInstance, AZTEC_TIMEOUT } from './helpers.js'
 import { SponsoredFPCContract } from "@aztec/noir-contracts.js/SponsoredFPC";
 
 /**
@@ -35,16 +35,16 @@ const deploy = async () => {
 
     // @ts-ignore
     const admin = await getSchnorrAccount(pxe, secretKey, signingKey, 0);
-    const adminWallet = await admin.waitSetup({ fee: { paymentMethod }, timeout: 180 });
+    const adminWallet = await admin.waitSetup({ fee: { paymentMethod }, timeout: AZTEC_TIMEOUT });
 
-    // const token = await deployTokenContract(adminWallet, paymentMethod);
-    // const escrow = await deployEscrowContract(adminWallet, paymentMethod, token);
+    const token = await deployTokenContract(adminWallet, paymentMethod);
+    const escrow = await deployEscrowContract(adminWallet, paymentMethod, token);
 
-    // console.log(`VITE_APP_ESCROW_CONTRACT_ADDRESS = "${escrow.address.toString()}"`);
-    // console.log(`VITE_APP_TOKEN_CONTRACT_ADDRESS = "${token.address.toString()}"`);
-    // console.log(`VITE_APP_TOKEN_ADMIN_SECRET_KEY = "${secretKey.toString()}"`);
-    // console.log(`VITE_APP_TOKEN_ADMIN_SIGNING_KEY = "${signingKey.toString()}"`);
-    // console.log(`VITE_APP_FPC_ADDRESS = "${fpc.toString()}"`)
+    console.log(`VITE_APP_ESCROW_CONTRACT_ADDRESS = "${escrow.address.toString()}"`);
+    console.log(`VITE_APP_TOKEN_CONTRACT_ADDRESS = "${token.address.toString()}"`);
+    console.log(`VITE_APP_TOKEN_ADMIN_SECRET_KEY = "${secretKey.toString()}"`);
+    console.log(`VITE_APP_TOKEN_ADMIN_SIGNING_KEY = "${signingKey.toString()}"`);
+    console.log(`VITE_APP_FPC_ADDRESS = "${fpc.toString()}"`)
 };
 
 deploy();

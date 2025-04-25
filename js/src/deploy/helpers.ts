@@ -10,6 +10,9 @@ import { USDC_TOKEN } from "../constants.js";
 import { SPONSORED_FPC_SALT } from '@aztec/constants';
 import { SponsoredFPCContract } from '@aztec/noir-contracts.js/SponsoredFPC';
 
+// tx timeout in seconds
+export const AZTEC_TIMEOUT = 300;
+
 export const deployEscrowContract = async (adminWallet: AccountWalletWithSecretKey, paymentMethod: SponsoredFeePaymentMethod, token: TokenContract): Promise<OpenbankingEscrowContract> => {
     return await OpenbankingEscrowContract.deploy(
         adminWallet,
@@ -33,7 +36,7 @@ export const deployEscrowContract = async (adminWallet: AccountWalletWithSecretK
         ]
     )
         .send({ fee: { paymentMethod } })
-        .deployed();
+        .deployed({ timeout: AZTEC_TIMEOUT });
 }
 
 export const deployTokenContract = async (adminWallet: AccountWalletWithSecretKey, paymentMethod: SponsoredFeePaymentMethod): Promise<TokenContract> => {
@@ -45,7 +48,7 @@ export const deployTokenContract = async (adminWallet: AccountWalletWithSecretKe
         USDC_TOKEN.decimals,
     )
         .send({ fee: { paymentMethod } })
-        .deployed();
+        .deployed({ timeout: AZTEC_TIMEOUT });
 }
 
 export const getSponsoredFPCInstance = async (): Promise<ContractInstanceWithAddress> => {

@@ -7,7 +7,7 @@ import {
     waitForPXE,
 } from '@aztec/aztec.js';
 import { getSchnorrAccount } from '@aztec/accounts/schnorr';
-import { getDeployedSponsoredFPCAddress, deployEscrowContract, deployTokenContract, getSponsoredFPCInstance, AZTEC_TIMEOUT } from './helpers.js'
+import { deployEscrowContract, deployTokenContract, getSponsoredFPCInstance, AZTEC_TIMEOUT } from './helpers.js'
 import { SponsoredFPCContract } from "@aztec/noir-contracts.js/SponsoredFPC";
 
 /**
@@ -22,14 +22,11 @@ const deploy = async () => {
     const secretKey = Fr.random();
     const signingKey = Fq.random();
 
-    // const fpc = await getDeployedSponsoredFPCAddress(pxe);
-    const fpc = AztecAddress.fromString('0x0b27e30667202907fc700d50e9bc816be42f8141fae8b9f2281873dbdb9fc2e5');
-
     const sponsoredFPC = await getSponsoredFPCInstance();
-    await pxe.registerContract({
-        instance: sponsoredFPC,
-        artifact: SponsoredFPCContract.artifact,
-    });
+    // await pxe.registerContract({
+    //     instance: sponsoredFPC,
+    //     artifact: SponsoredFPCContract.artifact,
+    // });
 
     const paymentMethod = new SponsoredFeePaymentMethod(sponsoredFPC.address);
 
@@ -44,7 +41,7 @@ const deploy = async () => {
     console.log(`VITE_APP_TOKEN_CONTRACT_ADDRESS = "${token.address.toString()}"`);
     console.log(`VITE_APP_TOKEN_ADMIN_SECRET_KEY = "${secretKey.toString()}"`);
     console.log(`VITE_APP_TOKEN_ADMIN_SIGNING_KEY = "${signingKey.toString()}"`);
-    console.log(`VITE_APP_FPC_ADDRESS = "${fpc.toString()}"`)
+    console.log(`VITE_APP_FPC_ADDRESS = "${sponsoredFPC.address.toString()}"`)
 };
 
 deploy();

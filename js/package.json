@@ -10,19 +10,21 @@
     "format": "prettier --write .",
     "test": "jest",
     "lint": "eslint .",
+    "preinstall": "bash preinstall.sh",
     "prepublishOnly": "yarn lint && yarn build",
-    "deploy": "node --loader ts-node/esm src/deploy.ts",
-    "preinstall": "./preinstall.sh"
+    "deploy": "NODE_NO_WARNINGS=1 node --loader ts-node/esm src/deploy/index.ts",
+    "x": "NODE_NO_WARNINGS=1 node --loader ts-node/esm src/deploy/x.ts"
   },
   "dependencies": {
     "@aztec/accounts": "=0.85.0-alpha-testnet.2",
     "@aztec/noir-contracts.js": "=0.85.0-alpha-testnet.2",
+    "@aztec/stdlib": "=0.85.0-alpha-testnet.2",
     "@mach-34/noir-bignum-paramgen": "^1.1.2",
     "@noir-lang/noir_js": "=1.0.0-beta.1",
     "@noir-lang/noirc_abi": "=1.0.0-beta.1",
     "@types/axios": "^0.14.4",
     "@zk-email/helpers": "^6.3.2",
-    "aztec-scan-sdk": "file:node_modules/aztec-scan-sdk",
+    "aztec-scan-sdk": "file:./node_modules/aztec-scan-sdk",
     "axios": "^1.7.9",
     "jose": "^5.9.6"
   },

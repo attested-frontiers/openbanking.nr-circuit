@@ -1,5 +1,29 @@
 #!/bin/bash
 
+## Set Aztec NPM version
+AZTEC_NPM_VERSION="=0.85.0-alpha-testnet.2"
+
+## Check architecture and set SED_CMD
+ARCH=$(uname)
+if [[ "$ARCH" == "Linux" ]]; then
+    SED_CMD="sed"
+    echo "Linux detected, using standard sed"
+elif [[ "$ARCH" == "Darwin" ]]; then
+    # macOS detected
+    echo "macOS detected, checking for gsed..."
+    if command -v gsed >/dev/null 2>&1; then
+        SED_CMD="gsed"
+        echo "gsed is available, using gsed"
+    else
+        echo "Error: gsed is not installed on your macOS system."
+        echo "Please install it using: brew install gnu-sed"
+        exit 1
+    fi
+else
+    echo "Unsupported architecture: $ARCH"
+    exit 1
+fi
+
 ## Create node_modules directory if it doesn't exist
 mkdir -p node_modules
 
@@ -11,6 +35,12 @@ fi
 ## Clone and build aztec-scan-sdk
 git clone --depth=1 --branch=main --single-branch https://github.com/aztec-scan/aztec-scan-sdk
 cd aztec-scan-sdk
+
+## Replace aztec dependency versions in package.json
+echo "Replacing Aztec package versions in package.json..."
+$SED_CMD -i 's/"@aztec\/aztec.js": "[^"]*"/"@aztec\/aztec.js": "'$AZTEC_NPM_VERSION'"/g' package.json
+$SED_CMD -i 's/"@aztec\/noir-contracts.js": "[^"]*"/"@aztec\/noir-contracts.js": "'$AZTEC_NPM_VERSION'"/g' package.json
+
 npm install
 npm run build
 

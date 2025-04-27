@@ -1,5 +1,12 @@
 import { MAX_JWT_SIZE } from './constants';
 import { BoundedVec } from './types';
+import {
+  AztecAddress,
+  ContractInstanceWithAddress, Fr, getContractInstanceFromDeployParams,
+  PXE,
+} from '@aztec/aztec.js'
+import { SPONSORED_FPC_SALT } from '@aztec/constants';
+import { SponsoredFPCContract } from '@aztec/noir-contracts.js/SponsoredFPC';
 
 /**
  * Takes a base64 url string and converts it to bytes
@@ -98,4 +105,29 @@ export function u8ToU32(input: Uint8Array): Uint32Array {
       (input[i * 4 + 3] << 0);
   }
   return out;
+}
+
+export const getSponsoredFPCInstance = async (): Promise<ContractInstanceWithAddress> => {
+  return await getContractInstanceFromDeployParams(SponsoredFPCContract.artifact, {
+    salt: new Fr(SPONSORED_FPC_SALT),
+  });
+}
+
+const getSponsoredFPCAddress = async () => {
+  return (await getSponsoredFPCInstance()).address;
+}
+
+/**
+* Gets deployed Fee Payment Contract from supplied PXE
+* 
+* @param pxe - Aztec private execution environment instance
+* @returns - promise containing AztecAddress of fpc contract
+*/
+export const getDeployedSponsoredFPCAddress = async (pxe: PXE): Promise<AztecAddress> => {
+  const fpc = await getSponsoredFPCAddress();
+  const contracts = await pxe.getContracts();
+  if (!contracts.find(c => c.equals(fpc))) {
+    throw new Error('SponsoredFPC not deployed.');
+  }
+  return fpc;
 }

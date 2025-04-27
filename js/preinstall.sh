@@ -1,5 +1,6 @@
 #!/bin/bash
 
+<<<<<<< HEAD
 ## Set Aztec NPM version
 AZTEC_NPM_VERSION="=0.85.0-alpha-testnet.2"
 
@@ -24,6 +25,8 @@ else
     exit 1
 fi
 
+=======
+>>>>>>> 8bbaba26522891b872700a70c900d0e86c5b59cc
 ## Create node_modules directory if it doesn't exist
 mkdir -p node_modules
 
@@ -35,12 +38,15 @@ fi
 ## Clone and build aztec-scan-sdk
 git clone --depth=1 --branch=main --single-branch https://github.com/aztec-scan/aztec-scan-sdk
 cd aztec-scan-sdk
+<<<<<<< HEAD
 
 ## Replace aztec dependency versions in package.json
 echo "Replacing Aztec package versions in package.json..."
 $SED_CMD -i 's/"@aztec\/aztec.js": "[^"]*"/"@aztec\/aztec.js": "'$AZTEC_NPM_VERSION'"/g' package.json
 $SED_CMD -i 's/"@aztec\/noir-contracts.js": "[^"]*"/"@aztec\/noir-contracts.js": "'$AZTEC_NPM_VERSION'"/g' package.json
 
+=======
+>>>>>>> 8bbaba26522891b872700a70c900d0e86c5b59cc
 npm install
 npm run build
 

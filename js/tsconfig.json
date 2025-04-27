@@ -18,8 +18,13 @@
     "types": ["node", "jest"],
     "incremental": true,
     "outDir": "dist",
+<<<<<<< HEAD
     "allowArbitraryExtensions": true,
     "tsBuildInfoFile": "./.tsbuildinfo"
+=======
+    "tsBuildInfoFile": "./.tsbuildinfo",
+    "allowArbitraryExtensions": true,
+>>>>>>> 8bbaba26522891b872700a70c900d0e86c5b59cc
   },
   "include": ["src/**/*", "README.md", "LICENSE"],
   "exclude": ["dist", "node_modules"]

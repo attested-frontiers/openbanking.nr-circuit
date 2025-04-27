@@ -12,8 +12,13 @@
     "lint": "eslint .",
     "preinstall": "bash preinstall.sh",
     "prepublishOnly": "yarn lint && yarn build",
+<<<<<<< HEAD
     "deploy": "NODE_NO_WARNINGS=1 node --loader ts-node/esm src/deploy/index.ts",
     "x": "NODE_NO_WARNINGS=1 node --loader ts-node/esm src/deploy/x.ts"
+=======
+    "deploy": "node --loader ts-node/esm src/deploy.ts",
+    "preinstall": "./preinstall.sh"
+>>>>>>> 8bbaba26522891b872700a70c900d0e86c5b59cc
   },
   "dependencies": {
     "@aztec/accounts": "=0.85.0-alpha-testnet.2",
@@ -24,7 +29,11 @@
     "@noir-lang/noirc_abi": "=1.0.0-beta.1",
     "@types/axios": "^0.14.4",
     "@zk-email/helpers": "^6.3.2",
+<<<<<<< HEAD
     "aztec-scan-sdk": "file:./node_modules/aztec-scan-sdk",
+=======
+    "aztec-scan-sdk": "file:node_modules/aztec-scan-sdk",
+>>>>>>> 8bbaba26522891b872700a70c900d0e86c5b59cc
     "axios": "^1.7.9",
     "jose": "^5.9.6"
   },

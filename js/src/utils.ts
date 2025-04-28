@@ -1,4 +1,4 @@
-import { MAX_JWT_SIZE } from './constants';
+import { MAX_JWT_SIZE } from './constants.js';
 import { BoundedVec } from './types';
 import {
   AztecAddress,

@@ -14,7 +14,7 @@ export const AZTEC_TIMEOUT = 600;
 export const deployEscrowContract = async (adminWallet: AccountWalletWithSecretKey, paymentMethod: SponsoredFeePaymentMethod, token: TokenContract): Promise<OpenbankingEscrowContract> => {
     return await OpenbankingEscrowContract.deploy(
         adminWallet,
-        token.address,
+        token,
         [
             Fr.fromHexString(
                 '0x122fe470d24a14ba2e21e27225df5897b36e91e4ac6f62e022d4b901331b9ade'

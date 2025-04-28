@@ -44,13 +44,8 @@ contract OpenbankingEscrow {
      */
     #[public]
     #[initializer]
-    fn constructor(token_address: AztecAddress, key_hashes: [Field; MAX_KEY_HASHES_PER_TX]) {
+    fn constructor(token_address: AztecAddress) {
         storage.config.initialize(Config::new(token_address, context.msg_sender()));
-        for i in 0..MAX_KEY_HASHES_PER_TX {
-            if key_hashes[i] != 0 {
-                storage.pubkey_registry.at(key_hashes[i]).write(true);
-            }
-        }
     }
 
     /**

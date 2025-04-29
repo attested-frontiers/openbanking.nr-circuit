@@ -68,7 +68,6 @@ const deploy = async () => {
 
     console.log(`VITE_APP_ESCROW_CONTRACT_ADDRESS = "${escrow.address.toString()}"`);
     console.log(`VITE_APP_TOKEN_CONTRACT_ADDRESS = "${token.toString()}"`);
-    console.log(`VITE_APP_FPC_ADDRESS = "${sponsoredFPC.address.toString()}"`);
     process.exit(0);
 };
 

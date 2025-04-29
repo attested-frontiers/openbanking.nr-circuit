@@ -1,17 +1,17 @@
 import {
-    AccountWalletWithSecretKey, AztecAddress,
-    ContractInstanceWithAddress, Fr, getContractInstanceFromDeployParams,
-    PXE,
+    AccountWalletWithSecretKey,
+    AztecAddress,
+    Fr,
     SponsoredFeePaymentMethod
 } from "@aztec/aztec.js";
-import { TokenContract } from '@aztec/noir-contracts.js/Token';
+import { TokenContract } from '../artifacts/contracts/Token.js';
 import { OpenbankingEscrowContract } from '../artifacts/contracts/OpenbankingEscrow.js';
 import { USDC_TOKEN } from "../constants.js";
 
 // tx timeout in seconds
 export const AZTEC_TIMEOUT = 600;
 
-export const deployEscrowContract = async (adminWallet: AccountWalletWithSecretKey, paymentMethod: SponsoredFeePaymentMethod, token: TokenContract): Promise<OpenbankingEscrowContract> => {
+export const deployEscrowContract = async (adminWallet: AccountWalletWithSecretKey, paymentMethod: SponsoredFeePaymentMethod, token: AztecAddress): Promise<OpenbankingEscrowContract> => {
     return await OpenbankingEscrowContract.deploy(
         adminWallet,
         token,

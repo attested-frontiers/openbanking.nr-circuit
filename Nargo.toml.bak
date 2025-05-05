@@ -1,0 +1,8 @@
+[package]
+name = "openbanking_domestic"
+type = "bin"
+compiler_version = ">=1.0.0"
+
+[dependencies]
+openbanking_verifier = { path = "./lib" }
+zkemail = { git = "https://github.com/zkemail/zkemail.nr", tag = "feat/update-packages", directory = "lib"} 

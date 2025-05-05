@@ -7,22 +7,27 @@ pub global ESCROW_BALANCE_SERIALIZED_LEN: u32 = 3;
 
 #[derive(Serialize, Deserialize, Packable, Eq)]
 pub struct EscrowBalance {
-    balance: U128,
+    balance: u128,
     initialized: bool,
     // block number the escrow owner can withdraw at
     withdrawable_at: Field,
     // amount the escrow owner has prompted to withdraw then
-    withdrawable_balance: U128,
+    withdrawable_balance: u128,
 }
 
 impl EscrowBalance {
 
-    pub fn new(balance: U128) -> Self {
+    /**
+     * Create a new escrow balance
+     *
+     * @param balance - initial balance of the escrow position
+     */
+    pub fn new(balance: u128) -> Self {
         EscrowBalance {
             balance,
             initialized: true,
             withdrawable_at: 0,
-            withdrawable_balance: U128::zero(),
+            withdrawable_balance: 0,
         }
     }
 
@@ -39,7 +44,7 @@ impl EscrowBalance {
      * Deposit funds into the escrow balance
      * @param amount: amount to deposit
      */
-    pub fn deposit(&mut self, amount: U128) {
+    pub fn deposit(&mut self, amount: u128) {
         self.balance += amount;
     }
 
@@ -49,7 +54,7 @@ impl EscrowBalance {
      *
      * @param amount - the amount being decremented from the balance
      */
-    pub fn decrement(&mut self, amount: U128) {
+    pub fn decrement(&mut self, amount: u128) {
         assert(self.balance >= amount, "Amount exceeds escrow balance.");
         self.balance -= amount;
     }
@@ -78,9 +83,9 @@ impl EscrowBalance {
      * @dev can be overwritten if bad withdrawal request already made
      *
      * @param amount - the amount of funds to withdraw from the escrow
-     * @par
+     * @param
      */
-    pub fn mark_for_withdrawal(&mut self, amount: U128, block_number: Field) {
+    pub fn mark_for_withdrawal(&mut self, amount: u128, block_number: Field) {
         assert(self.balance >= amount, "Amount to withdraw exceeds escrow balance");
         self.withdrawable_at = block_number + WITHDRAWAL_LOCKUP_BLOCKS as Field;
         self.withdrawable_balance = amount;
@@ -91,11 +96,11 @@ impl EscrowBalance {
      *
      * @return the amount withdrawn
      */
-    pub fn complete_withdraw(&mut self) -> U128 {
+    pub fn complete_withdraw(&mut self) -> u128 {
         let amount_to_withdraw = self.withdrawable_balance;
         self.balance -= amount_to_withdraw;
         self.withdrawable_at = 0;
-        self.withdrawable_balance = U128::zero();
+        self.withdrawable_balance = 0;
         amount_to_withdraw
     }
 }

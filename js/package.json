@@ -1,20 +1,23 @@
 {
-  "name": "@openbanking.nr/js-inputs",
-  "version": "1.0.0",
+  "name": "@openbanking-nr/js-inputs",
+  "version": "1.0.8",
   "main": "dist",
   "types": "dist",
   "license": "MIT",
   "type": "module",
   "scripts": {
     "build": "tsc",
+    "format": "prettier --write .",
     "test": "jest",
     "lint": "eslint .",
-    "prepublishOnly": "yarn lint && yarn build",
-    "deploy": "node --loader ts-node/esm src/deploy.ts"
+    "prepublishOnly": "yarn build",
+    "deploy:sandbox": "node --loader ts-node/esm src/deploy/index.ts --network=sandbox",
+    "deploy:testnet": "node --loader ts-node/esm src/deploy/index.ts --network=testnet"
   },
   "dependencies": {
-    "@aztec/accounts": "=0.76.1",
-    "@aztec/noir-contracts.js": "=0.76.1",
+    "@aztec/accounts": "=0.85.0-alpha-testnet.2",
+    "@aztec/noir-contracts.js": "=0.85.0-alpha-testnet.2",
+    "@aztec/pxe": "=0.85.0-alpha-testnet.2",
     "@mach-34/noir-bignum-paramgen": "^1.1.2",
     "@noir-lang/noir_js": "=1.0.0-beta.1",
     "@noir-lang/noirc_abi": "=1.0.0-beta.1",
@@ -40,6 +43,8 @@
     "eslint-config-airbnb-typescript": "^18.0.0",
     "eslint-plugin-import": "^2.29.1",
     "jest": "^29.7.0",
+    "jest-mock-extended": "^4.0.0-beta1",
+    "prettier": "^3.5.1",
     "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "5.5"
@@ -48,7 +53,6 @@
     "dist/**/**",
     "docs/**/**",
     "!**/*.spec.*",
-    "!**/*.json",
     "!**/*.tsbuildinfo",
     "LICENSE",
     "README.md"

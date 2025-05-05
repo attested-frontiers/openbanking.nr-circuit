@@ -1,7 +1,10 @@
 use crate::{
     OpenbankingEscrow,
+    test::utils::{
+        constants::{REVOLUT_KEY_HASHES, REVOLUT_MODULI, REVOLUT_REDCS},
+        escrow_helpers::add_pubkey_hashes,
+    },
     utils::hash_pubkey,
-    test::utils::{escrow_helpers::add_pubkey_hashes, constants::{REVOLUT_MODULI, REVOLUT_REDCS, REVOLUT_KEY_HASHES}},
 };
 use aztec::{prelude::AztecAddress, test::helpers::{cheatcodes, test_environment::TestEnvironment}};
 use token::Token;
@@ -9,8 +12,6 @@ use token::Token;
 global USDC_NAME: str<31> = "Aztec USDC\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 global USDC_SYMBOL: str<31> = "USDC.e\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 global USDC_DECIMALS: u8 = 6;
-
-
 
 pub struct TestAccounts {
     admin: AztecAddress,
@@ -36,8 +37,9 @@ pub unconstrained fn setup() -> (&mut TestEnvironment, TestAccounts, TestContrac
     // deploy the token contract
     let usdc_address = deploy_token_contract(&mut env, accounts.admin);
 
-    let escrow_address = deploy_escrow_with_pubkey_hashes(&mut env, accounts.admin, usdc_address);
-    // let escrow_address = deploy_escrow_contract(&mut env, accounts.admin, usdc_address, [0, 0, 0, 0]);
+    // let escrow_address = deploy_escrow_with_pubkey_hashes(&mut env, accounts.admin, usdc_address);
+    let escrow_address =
+        deploy_escrow_contract(&mut env, accounts.admin, usdc_address, [0, 0, 0, 0]);
 
     // return setup params
     (&mut env, accounts, TestContracts { usdc: usdc_address, escrow: escrow_address })
@@ -51,9 +53,8 @@ pub unconstrained fn deploy_token_contract(
 
     let token_init_call_iface =
         Token::interface().constructor(deployer, USDC_NAME, USDC_SYMBOL, USDC_DECIMALS);
-    let token_contract = env.deploy("./@token_contract", "Token").with_public_void_initializer(
-        token_init_call_iface,
-    );
+    let token_contract =
+        env.deploy("./@token", "Token").with_public_void_initializer(token_init_call_iface);
 
     cheatcodes::advance_blocks_by(1);
 
@@ -64,10 +65,11 @@ pub unconstrained fn deploy_escrow_contract(
     env: &mut TestEnvironment,
     deployer: AztecAddress,
     token_address: AztecAddress,
-    pubkey_hashes: [Field; 4]
+    pubkey_hashes: [Field; 4],
 ) -> AztecAddress {
     env.impersonate(deployer);
-    let escrow_init_call_iface = OpenbankingEscrow::interface().constructor(token_address, pubkey_hashes);
+    let escrow_init_call_iface =
+        OpenbankingEscrow::interface().constructor(token_address, pubkey_hashes);
     let escrow_contract = env
         .deploy("./@openbanking_escrow", "OpenbankingEscrow")
         .with_public_void_initializer(escrow_init_call_iface);
@@ -78,7 +80,7 @@ pub unconstrained fn deploy_escrow_contract(
 pub unconstrained fn deploy_escrow_with_pubkey_hashes(
     env: &mut TestEnvironment,
     deployer: AztecAddress,
-    token_address: AztecAddress
+    token_address: AztecAddress,
 ) -> AztecAddress {
     let mut first_batch = [0; 4];
     for i in 0..4 {

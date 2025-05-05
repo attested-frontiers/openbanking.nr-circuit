@@ -11,15 +11,17 @@ echo -e "=====[${ORANGE}OpenBanking.nr Compilation Script${NC}]====="
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 ARTIFACTS_PATH=$SCRIPT_DIR/../js/src/artifacts
 COMPILED_CONTRACT_NAME=openbanking_escrow-OpenbankingEscrow.json
-TOKEN_BYTECODE_PATH=$SCRIPT_DIR/../js/node_modules/@aztec/noir-contracts.js/artifacts/token_contract-Token.json
-TXE_TOKEN_PATH=$SCRIPT_DIR/../contracts/openbanking-escrow/target/token_contract-Token.json
+COMPILED_TOKEN_NAME=token-Token.json
+TOKEN_CONTRACT_PATH=$HOME/nargo/github.com/nemi-fi/aztec-token/main
+TOKEN_BYTECODE_PATH=$TOKEN_CONTRACT_PATH/target/token-Token.json
+TXE_TOKEN_PATH=$SCRIPT_DIR/../contracts/openbanking-escrow/target/token-Token.json
 CONTRACT_ACIR_PATH=$SCRIPT_DIR/../contracts/openbanking-escrow/target/$COMPILED_CONTRACT_NAME
 
 NOIRUP_URL="https://raw.githubusercontent.com/noir-lang/noirup/main/install"
 BBUP_URL="https://raw.githubusercontent.com/AztecProtocol/aztec-packages/refs/heads/master/barretenberg/bbup/install"
-EXPECTED_NARGO_VERSION="1.0.0-beta.1"
-EXPECTED_BB_VERSION="0.66.0"
-EXPECTED_AZTEC_VERSION="0.76.1"
+EXPECTED_NARGO_VERSION="1.0.0-beta.3"
+EXPECTED_BB_VERSION="0..0"
+EXPECTED_AZTEC_VERSION="0.85.0-alpha-testnet.2"
 
 ## Set the SED utility depending on OSX or Linix
 if command -v gsed &> /dev/null
@@ -129,19 +131,17 @@ compile_circuit() {
 }
 
 compile_contracts() {
-    # Dependencies
-    check_aztec
-    if [ ! -e "$TOKEN_BYTECODE_PATH" ]; then
-        echo "Installing js dependencies to access token bytecode for TXE..."
-        cd $SCRIPT_DIR/../js
-        $node_package_installer install &> /dev/null
-    fi
-    echo -e "${GREEN}✓${NC} Token Bytecode $version is installed"
-
-    # Compile
+    # Compile escrow contract
     echo "Compiling OpenBanking Escrow contract..."
     cd $SCRIPT_DIR/../contracts/openbanking-escrow
     aztec-nargo compile --force --silence-warnings
+
+
+    # cd into token directory and compile
+    cd $HOME/nargo/github.com/nemi-fi/aztec-token/main
+    aztec-nargo compile --force --silence-warnings
+    echo -e "${GREEN}✓${NC} Aztec Token $version is compiled"
+
     cp $TOKEN_BYTECODE_PATH $TXE_TOKEN_PATH
 }
 
@@ -149,16 +149,22 @@ ts_artifacts() {
     # Ensure the sed commands will pass
     check_gsed
 
-    # Generate TS artifact
-    echo "Generating TypeScript interface for OpenBanking Escrow Contract..."
+    # Generate TS artifacts
+    echo "Generating TypeScript interface for OpenBanking Escrow and Token Contracts..."
     cd $SCRIPT_DIR/../contracts/openbanking-escrow
     aztec codegen ./target/$COMPILED_CONTRACT_NAME -o $ARTIFACTS_PATH/contracts
+    aztec codegen ./target/$COMPILED_TOKEN_NAME -o $ARTIFACTS_PATH/contracts
 
     # Update import paths for JS library
     cp ./target/$COMPILED_CONTRACT_NAME $ARTIFACTS_PATH/contracts/openbanking_escrow.json
     $sed_cmd -i "s|../../../../contracts/openbanking-escrow/target/$COMPILED_CONTRACT_NAME|./openbanking_escrow.json|" $ARTIFACTS_PATH/contracts/OpenbankingEscrow.ts
     $sed_cmd -i "s|assert { type: 'json' }|with { type: 'json' }|" $ARTIFACTS_PATH/contracts/OpenbankingEscrow.ts
     $sed_cmd -i "/export const OpenBankingEscrowContractArtifact = loadContractArtifact(OpenBankingArtifactContractArtifactJson as NoirCompiledContract);/i \\/\/@ts-ignore" $ARTIFACTS_PATH/contracts/OpenbankingEscrow.ts
+
+    cp ./target/$COMPILED_TOKEN_NAME $ARTIFACTS_PATH/contracts/token.json
+    $sed_cmd -i "s|../../../../contracts/openbanking-escrow/target/$COMPILED_TOKEN_NAME|./token.json|" $ARTIFACTS_PATH/contracts/Token.ts
+    $sed_cmd -i "s|assert { type: 'json' }|with { type: 'json' }|" $ARTIFACTS_PATH/contracts/Token.ts
+    $sed_cmd -i "/export const TokenContractArtifact = loadContractArtifact(TokenArtifactContractArtifactJson as NoirCompiledContract);/i \\/\/@ts-ignore" $ARTIFACTS_PATH/contracts/Token.ts
 
     # Build the library from ts to js
     cd $SCRIPT_DIR/../js

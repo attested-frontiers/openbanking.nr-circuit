@@ -7,9 +7,9 @@ use openbanking_verifier::{
 
 #[derive(Serialize)]
 pub struct OpenbankingVerifierParamsContract {
-    signature_limbs: [Field; 18],
-    modulus_limbs: [Field; 18],
-    redc_limbs: [Field; 18],
+    signature_limbs: [u128; 18],
+    modulus_limbs: [u128; 18],
+    redc_limbs: [u128; 18],
     partial_hash_start: [u32; 8],
     header_delimiter_index: u32,
     payload: [u8; MAX_PAYLOAD_LENGTH],
@@ -17,6 +17,12 @@ pub struct OpenbankingVerifierParamsContract {
 }
 
 impl OpenbankingVerifierParamsContract {
+    /**
+     * Transforms circuit friendly inputs into contract friendly inputs since Aztec smart contracts
+     * don't support BoundedVecs as contract inputs
+     *
+     * @param params - Openbanking.nr verifier circuit
+     */
     fn unmarshal(params: OpenbankingVerifierParams) -> Self {
         Self {
             signature_limbs: params.signature_limbs,
@@ -29,6 +35,11 @@ impl OpenbankingVerifierParamsContract {
         }
     }
 
+    /**
+     * Transforms contract friendly inputs into Openbanking.nr verifier circuit friendly inputs
+     *
+     * @param params - Openbanking.nr verifier circuit
+     */
     fn marshal(self) -> OpenbankingVerifierParams {
         // check that payload sequence falls within specified length
         for i in 0..MAX_PAYLOAD_LENGTH {

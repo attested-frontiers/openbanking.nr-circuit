@@ -1,17 +1,14 @@
+use crate::constants::{
+    CURRENCY_CODE_VALUE_LENGTH, MAX_AMOUNT_VALUE_LENGTH, MAX_PAYLOAD_LENGTH, PAYMENT_ID_LENGTH,
+    SORT_CODE_VALUE_LENGTH,
+};
+use nodash::ArrayExtensions;
 use std::hash::poseidon2::Poseidon2;
 
-use crate::constants::{
-    MAX_PAYLOAD_LENGTH,
-    MAX_AMOUNT_VALUE_LENGTH,
-    CURRENCY_CODE_VALUE_LENGTH,
-    PAYMENT_ID_LENGTH,
-    SORT_CODE_VALUE_LENGTH
-};
-
 pub struct OpenbankingVerifierParams {
-    signature_limbs: [Field; 18],
-    modulus_limbs: [Field; 18],
-    redc_limbs: [Field; 18],
+    signature_limbs: [u128; 18],
+    modulus_limbs: [u128; 18],
+    redc_limbs: [u128; 18],
     partial_hash_start: [u32; 8],
     header_delimiter_index: u32,
     payload: BoundedVec<u8, MAX_PAYLOAD_LENGTH>,
@@ -49,7 +46,12 @@ impl OpenbankingVerifierReturn {
         Poseidon2::hash([sort_code, currency_code, salt], 3)
     }
 
-    pub fn parse_amount(self) -> Field {
+    /**
+     * Convert payment amount as bytes to number 
+     * 
+     * @return - amount as number
+     */
+    pub fn parse_amount(self) -> u128 {
         // convert amount from bytes to field and add 4 decimals for USDC decimal conversion
         let amount_vec_length = self.amount.len();
         let mut converted: Field = 0;
@@ -62,9 +64,14 @@ impl OpenbankingVerifierReturn {
                 pow = pow / 10;
             }
         }
-        converted * 10.pow_32(4)
+        (converted * 10.pow_32(4)) as u128
     }
 
+    /**
+     * Computes a nullifier from payment id
+     * 
+     * @return - nullifier
+     */
     pub fn payment_nullifier(self) -> Field {
         let payment_id_packed = pack_bytes::<PAYMENT_ID_LENGTH>(self.payment_id);
         Poseidon2::hash(payment_id_packed, 2)
@@ -72,6 +79,11 @@ impl OpenbankingVerifierReturn {
 }
 
 // todo: from nodash, need to use dep when updated
+/**
+ * Packs a byte array into an array of Fields
+ * 
+ * @return - packed bytes
+ */
 fn pack_bytes<let N: u32>(bytes: [u8; N]) -> [Field; N / 31 + 1] {
     let bytes_padded = bytes.pad_end::<(N / 31 + 1) * 31>(0);
     let mut res = [0 as Field; N / 31 + 1];

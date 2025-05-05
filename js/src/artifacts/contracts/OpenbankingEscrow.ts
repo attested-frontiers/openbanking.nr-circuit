@@ -23,14 +23,13 @@ import {
   type FieldLike,
   Fr,
   type FunctionSelectorLike,
-  L1EventPayload,
   loadContractArtifact,
+  loadContractArtifactForPublic,
   type NoirCompiledContract,
   NoteSelector,
   Point,
   type PublicKey,
   PublicKeys,
-  type UnencryptedL2Log,
   type Wallet,
   type U128Like,
   type WrappedFieldLike,
@@ -107,6 +106,13 @@ export class OpenbankingEscrowContract extends ContractBase {
   public static get artifact(): ContractArtifact {
     return OpenbankingEscrowContractArtifact;
   }
+
+  /**
+   * Returns this contract's artifact with public bytecode.
+   */
+  public static get artifactForPublic(): ContractArtifact {
+    return loadContractArtifactForPublic(OpenbankingEscrowContractArtifactJson as NoirCompiledContract);
+  }
   
 
   public static get storage(): ContractStorageLayout<'config' | 'escrow_owners' | 'escrow_balances' | 'pubkey_registry'> {
@@ -146,10 +152,7 @@ EscrowOwnerNote: {
     add_key_hashes: ((key_hashes: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** check_verify_payload(payload: struct) */
-    check_verify_payload: ((payload: { signature_limbs: FieldLike[], modulus_limbs: FieldLike[], redc_limbs: FieldLike[], partial_hash_start: (bigint | number)[], header_delimiter_index: (bigint | number), payload: (bigint | number)[], payload_length: (bigint | number) }) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
-
-    /** compute_note_hash_and_optionally_a_nullifier(contract_address: struct, nonce: field, storage_slot: field, note_type_id: field, compute_nullifier: boolean, packed_note_content: array) */
-    compute_note_hash_and_optionally_a_nullifier: ((contract_address: AztecAddressLike, nonce: FieldLike, storage_slot: FieldLike, note_type_id: FieldLike, compute_nullifier: boolean, packed_note_content: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    check_verify_payload: ((payload: { signature_limbs: (bigint | number)[], modulus_limbs: (bigint | number)[], redc_limbs: (bigint | number)[], partial_hash_start: (bigint | number)[], header_delimiter_index: (bigint | number), payload: (bigint | number)[], payload_length: (bigint | number) }) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** constructor(token_address: struct, key_hashes: array) */
     constructor: ((token_address: AztecAddressLike, key_hashes: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
@@ -163,29 +166,29 @@ EscrowOwnerNote: {
     /** get_escrow_owner_note(scope: struct) */
     get_escrow_owner_note: ((scope: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** increment_escrow_balance(amount: struct) */
-    increment_escrow_balance: ((amount: U128Like) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** increment_escrow_balance(amount: integer) */
+    increment_escrow_balance: ((amount: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** init_escrow_balance(sort_code: field, currency_code: field, amount: struct, randomness: field) */
-    init_escrow_balance: ((sort_code: FieldLike, currency_code: FieldLike, amount: U128Like, randomness: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** init_escrow_balance(sort_code: field, currency_code: field, amount: integer, randomness: field) */
+    init_escrow_balance: ((sort_code: FieldLike, currency_code: FieldLike, amount: (bigint | number), randomness: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** process_log(log_plaintext: struct, tx_hash: field, unique_note_hashes_in_tx: struct, first_nullifier_in_tx: field, recipient: struct) */
-    process_log: ((log_plaintext: { storage: FieldLike[], len: (bigint | number) }, tx_hash: FieldLike, unique_note_hashes_in_tx: { storage: FieldLike[], len: (bigint | number) }, first_nullifier_in_tx: FieldLike, recipient: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
-
-    /** prompt_withdraw_escrow_balance(amount: struct) */
-    prompt_withdraw_escrow_balance: ((amount: U128Like) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** prompt_withdraw_escrow_balance(amount: integer) */
+    prompt_withdraw_escrow_balance: ((amount: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** prove_payment_and_claim(openbanking_params: struct) */
-    prove_payment_and_claim: ((openbanking_params: { signature_limbs: FieldLike[], modulus_limbs: FieldLike[], redc_limbs: FieldLike[], partial_hash_start: (bigint | number)[], header_delimiter_index: (bigint | number), payload: (bigint | number)[], payload_length: (bigint | number) }) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    prove_payment_and_claim: ((openbanking_params: { signature_limbs: (bigint | number)[], modulus_limbs: (bigint | number)[], redc_limbs: (bigint | number)[], partial_hash_start: (bigint | number)[], header_delimiter_index: (bigint | number), payload: (bigint | number)[], payload_length: (bigint | number) }) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** public_dispatch(selector: field) */
     public_dispatch: ((selector: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
+    /** revoke_keys(key_hashes: array) */
+    revoke_keys: ((key_hashes: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+
     /** sync_notes() */
     sync_notes: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** withdraw_escrow_balance(amount: struct) */
-    withdraw_escrow_balance: ((amount: U128Like) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** withdraw_escrow_balance(amount: integer) */
+    withdraw_escrow_balance: ((amount: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
   };
 
   

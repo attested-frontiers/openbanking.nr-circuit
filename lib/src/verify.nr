@@ -12,6 +12,19 @@ use json_parser::JSON;
 use rsa_pss::rsa::verify_sha256_pss;
 use zkemail::partial_hash::partial_sha256_var_end;
 
+/**
+ * Verifies a Openbanking payment
+ * 
+ * @param params -
+ *        signature_limbs - signature to verify payment in limb format
+ *        modulus_limbs - modulus of pubkey used to verify payment signature in limb format
+ *        redc_limbs - reduction params of pubkey used to verify payment signature in limb format
+ *        partial_hash_start - partial hash of the payment payload
+ *        header_delimiter_index - index of "." within the payload so we know where to extract payment data
+ *        payload - string where base64 header of payment JWT is concatenated with payment JSON data
+ *     
+ * @return - sort code, currency code, amount, and payment id from Openbanking payment
+ */
 pub fn verify_openbanking_payment(params: OpenbankingVerifierParams) -> OpenbankingVerifierReturn {
     let OpenbankingVerifierParams {
     signature_limbs,

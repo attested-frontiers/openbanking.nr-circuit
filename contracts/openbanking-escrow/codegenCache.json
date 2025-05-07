@@ -1,10 +1,10 @@
 {
   "openbanking_escrow-OpenbankingEscrow.json": {
     "contractName": "OpenbankingEscrow",
-    "hash": "7840393f839e510aed73022c47519ac2273ad66c4b9e9ec232339b8ffd98ebad"
+    "hash": "b0498339d4464d3dac1c1bdd986735c75a031dfd25605ef1e4a07e235f7efd21"
   },
   "token-Token.json": {
     "contractName": "Token",
-    "hash": "66076fdd76572aa0565e87c408ba7f315fc19abbc63e9a4ea35bc64918a9fcd9"
+    "hash": "57d5bd794a56ba00b8e9b2ba8846d175df32b957100f7efc6c3384ffa9dea5fd"
   }
 }

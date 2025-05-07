@@ -38,27 +38,27 @@ import TokenContractArtifactJson from './token.json' with { type: 'json' };
 export const TokenContractArtifact = loadContractArtifact(TokenContractArtifactJson as NoirCompiledContract);
 
 
-export type Transfer = {
-  from: AztecAddressLike
-  to: AztecAddressLike
-  amount: (bigint | number)
-}
-
+      export type Transfer = {
+        from: AztecAddressLike
+to: AztecAddressLike
+amount: (bigint | number)
+      }
+    
 
 /**
  * Type-safe interface for contract Token;
  */
 export class TokenContract extends ContractBase {
-
+  
   private constructor(
     instance: ContractInstanceWithAddress,
     wallet: Wallet,
   ) {
     super(instance, TokenContractArtifact, wallet);
   }
+  
 
-
-
+  
   /**
    * Creates a contract instance.
    * @param address - The deployed contract's address.
@@ -72,7 +72,7 @@ export class TokenContract extends ContractBase {
     return Contract.at(address, TokenContract.artifact, wallet) as Promise<TokenContract>;
   }
 
-
+  
   /**
    * Creates a tx to deploy a new instance of this contract.
    */
@@ -103,9 +103,9 @@ export class TokenContract extends ContractBase {
       opts.method ?? 'constructor',
     );
   }
+  
 
-
-
+  
   /**
    * Returns this contract's artifact.
    */
@@ -119,50 +119,50 @@ export class TokenContract extends ContractBase {
   public static get artifactForPublic(): ContractArtifact {
     return loadContractArtifactForPublic(TokenContractArtifactJson as NoirCompiledContract);
   }
-
+  
 
   public static get storage(): ContractStorageLayout<'admin' | 'minters' | 'balances' | 'total_supply' | 'public_balances' | 'symbol' | 'name' | 'decimals'> {
-    return {
-      admin: {
-        slot: new Fr(1n),
-      },
-      minters: {
-        slot: new Fr(2n),
-      },
-      balances: {
-        slot: new Fr(3n),
-      },
-      total_supply: {
-        slot: new Fr(4n),
-      },
-      public_balances: {
-        slot: new Fr(5n),
-      },
-      symbol: {
-        slot: new Fr(6n),
-      },
-      name: {
-        slot: new Fr(8n),
-      },
-      decimals: {
-        slot: new Fr(10n),
-      }
-    } as ContractStorageLayout<'admin' | 'minters' | 'balances' | 'total_supply' | 'public_balances' | 'symbol' | 'name' | 'decimals'>;
-  }
-
+      return {
+        admin: {
+      slot: new Fr(1n),
+    },
+minters: {
+      slot: new Fr(2n),
+    },
+balances: {
+      slot: new Fr(3n),
+    },
+total_supply: {
+      slot: new Fr(4n),
+    },
+public_balances: {
+      slot: new Fr(5n),
+    },
+symbol: {
+      slot: new Fr(6n),
+    },
+name: {
+      slot: new Fr(8n),
+    },
+decimals: {
+      slot: new Fr(10n),
+    }
+      } as ContractStorageLayout<'admin' | 'minters' | 'balances' | 'total_supply' | 'public_balances' | 'symbol' | 'name' | 'decimals'>;
+    }
+    
 
   public static get notes(): ContractNotes<'UintNote'> {
     return {
       UintNote: {
-        id: new NoteSelector(0),
-      }
+          id: new NoteSelector(0),
+        }
     } as ContractNotes<'UintNote'>;
   }
-
+  
 
   /** Type-safe wrappers for the public methods exposed by the contract. */
   public declare methods: {
-
+    
     /** balance_of_private(owner: struct) */
     balance_of_private: ((owner: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
@@ -266,58 +266,58 @@ export class TokenContract extends ContractBase {
     un_total_supply: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
   };
 
-
-  public static get events(): { Transfer: { abiType: AbiType, eventSelector: EventSelector, fieldNames: string[] } } {
+  
+    public static get events(): { Transfer: {abiType: AbiType, eventSelector: EventSelector, fieldNames: string[] } } {
     return {
       Transfer: {
         abiType: {
-          "kind": "struct",
-          "fields": [
-            {
-              "name": "from",
-              "type": {
+    "kind": "struct",
+    "fields": [
+        {
+            "name": "from",
+            "type": {
                 "kind": "struct",
                 "fields": [
-                  {
-                    "name": "inner",
-                    "type": {
-                      "kind": "field"
+                    {
+                        "name": "inner",
+                        "type": {
+                            "kind": "field"
+                        }
                     }
-                  }
                 ],
                 "path": "authwit::aztec::protocol_types::address::aztec_address::AztecAddress"
-              }
-            },
-            {
-              "name": "to",
-              "type": {
+            }
+        },
+        {
+            "name": "to",
+            "type": {
                 "kind": "struct",
                 "fields": [
-                  {
-                    "name": "inner",
-                    "type": {
-                      "kind": "field"
+                    {
+                        "name": "inner",
+                        "type": {
+                            "kind": "field"
+                        }
                     }
-                  }
                 ],
                 "path": "authwit::aztec::protocol_types::address::aztec_address::AztecAddress"
-              }
-            },
-            {
-              "name": "amount",
-              "type": {
+            }
+        },
+        {
+            "name": "amount",
+            "type": {
                 "kind": "integer",
                 "sign": "unsigned",
                 "width": 128
-              }
             }
-          ],
-          "path": "Token::Transfer"
-        },
+        }
+    ],
+    "path": "Token::Transfer"
+},
         eventSelector: EventSelector.fromString("0x70a1894e"),
-        fieldNames: ["from", "to", "amount"],
+        fieldNames: ["from","to","amount"],
       }
     };
   }
-
+  
 }

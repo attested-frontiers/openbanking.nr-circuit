@@ -9,7 +9,7 @@ import { OpenbankingEscrowContract } from '../artifacts/contracts/OpenbankingEsc
 import { USDC_TOKEN } from "../constants.js";
 
 // tx timeout in seconds
-export const AZTEC_TIMEOUT = 600;
+export const AZTEC_TIMEOUT = 1200;
 
 export const deployEscrowContract = async (adminWallet: AccountWalletWithSecretKey, paymentMethod: SponsoredFeePaymentMethod, token: AztecAddress): Promise<OpenbankingEscrowContract> => {
     return await OpenbankingEscrowContract.deploy(

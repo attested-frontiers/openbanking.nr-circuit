@@ -395,13 +395,9 @@ contract OpenbankingEscrow {
      */
     #[public]
     #[view]
-    fn get_escrow_liqudity_position(commitment: Field) -> pub u128 {
+    fn get_escrow_liqudity_position(commitment: Field) -> pub EscrowBalance {
         let balance = storage.escrow_balances.at(commitment).read();
-        let mut value = 0;
-        if balance.initialized {
-            value = balance.balance;
-        }
-        value
+        balance
     }
 
     /**

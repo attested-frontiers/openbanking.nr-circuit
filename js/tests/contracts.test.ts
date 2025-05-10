@@ -45,7 +45,7 @@ describe('OpenBanking.nr Contract Test', () => {
             );
 
             // create auth witness so escrow can trasfer from private balance to public
-            const action = await token.methods
+            const action = token.methods
                 .transfer_to_public(
                     alice.getAddress(),
                     escrow.address,

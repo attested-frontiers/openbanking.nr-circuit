@@ -30,7 +30,6 @@ export const deployEscrowContract = async (
     return await OpenbankingEscrowContract.deploy(
         adminWallet,
         tokenAddress,
-        [Fr.ZERO, Fr.ZERO, Fr.ZERO, Fr.ZERO, Fr.ZERO],
     )
         .send({ fee: { paymentMethod, gasSettings } })
         .deployed({ timeout });

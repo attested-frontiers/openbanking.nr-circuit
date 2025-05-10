@@ -1,4 +1,4 @@
-import { ContractArtifact, ContractBase, NoirCompiledContract } from '@aztec/aztec.js';
+import { AztecAddress, ContractArtifact, ContractBase, NoirCompiledContract, PublicKeys } from '@aztec/aztec.js';
 import {
     generateVerifyArtifactUrl,
     generateVerifyArtifactPayload,
@@ -6,11 +6,18 @@ import {
     generateVerifyInstancePayload,
     callExplorerApi,
     initialize as initializeExplorerApi,
+    ContractDeployerMetadata,
+    VerifyInstanceArgs
 } from "aztec-scan-sdk";
 
+
 export const verifySource = async (
+    deployerPubkey: PublicKeys,
+    deployerAddress: AztecAddress,
     contracts: ContractBase[],
-    artifacts: ContractArtifact[]
+    artifacts: ContractArtifact[],
+    metadata: ContractDeployerMetadata[],
+    verifyArgs: VerifyInstanceArgs[],
 ) => {
     // initialize explorer api
     const apiUrl = "https://api.aztecscan.xyz/v1/";
@@ -36,5 +43,19 @@ export const verifySource = async (
         let progress = `${i + 1}/${contracts.length}`;
         console.log(`Contract artifact of contract at ${contract.address} verified successfully! (${progress})`);
         // verify deployed instance
+        const verifyUrl = generateVerifyInstanceUrl(
+            undefined,
+            contracts[i].address.toString(),
+        );
+        const verifyPayload = {
+            deployerMetadata: metadata[i],
+            verifiedDeploymentArguments: generateVerifyInstancePayload(verifyArgs[i]),
+        };
+        await callExplorerApi({
+            loggingString: `Verify Instance`,
+            urlStr: verifyUrl,
+            postData: JSON.stringify(verifyPayload),
+            method: "POST",
+          });
     }
 }

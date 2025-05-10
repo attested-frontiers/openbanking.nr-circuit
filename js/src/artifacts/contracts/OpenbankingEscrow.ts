@@ -70,14 +70,14 @@ export class OpenbankingEscrowContract extends ContractBase {
   /**
    * Creates a tx to deploy a new instance of this contract.
    */
-  public static deploy(wallet: Wallet, token_address: AztecAddressLike, key_hashes: FieldLike[]) {
+  public static deploy(wallet: Wallet, token_address: AztecAddressLike) {
     return new DeployMethod<OpenbankingEscrowContract>(PublicKeys.default(), wallet, OpenbankingEscrowContractArtifact, OpenbankingEscrowContract.at, Array.from(arguments).slice(1));
   }
 
   /**
    * Creates a tx to deploy a new instance of this contract using the specified public keys hash to derive the address.
    */
-  public static deployWithPublicKeys(publicKeys: PublicKeys, wallet: Wallet, token_address: AztecAddressLike, key_hashes: FieldLike[]) {
+  public static deployWithPublicKeys(publicKeys: PublicKeys, wallet: Wallet, token_address: AztecAddressLike) {
     return new DeployMethod<OpenbankingEscrowContract>(publicKeys, wallet, OpenbankingEscrowContractArtifact, OpenbankingEscrowContract.at, Array.from(arguments).slice(2));
   }
 
@@ -154,8 +154,8 @@ EscrowOwnerNote: {
     /** check_verify_payload(payload: struct) */
     check_verify_payload: ((payload: { signature_limbs: (bigint | number)[], modulus_limbs: (bigint | number)[], redc_limbs: (bigint | number)[], partial_hash_start: (bigint | number)[], header_delimiter_index: (bigint | number), payload: (bigint | number)[], payload_length: (bigint | number) }) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** constructor(token_address: struct, key_hashes: array) */
-    constructor: ((token_address: AztecAddressLike, key_hashes: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** constructor(token_address: struct) */
+    constructor: ((token_address: AztecAddressLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** get_escrow_liqudity_position(commitment: field) */
     get_escrow_liqudity_position: ((commitment: FieldLike) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

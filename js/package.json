@@ -1,6 +1,6 @@
 {
   "name": "@openbanking-nr/js-inputs",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "main": "dist",
   "types": "dist",
   "license": "MIT",
@@ -11,8 +11,8 @@
     "test": "jest",
     "lint": "eslint .",
     "prepublishOnly": "yarn build",
-    "deploy:sandbox": "node --loader ts-node/esm src/deploy/index.ts --network=sandbox",
-    "deploy:testnet": "node --loader ts-node/esm src/deploy/index.ts --network=testnet"
+    "deploy:sandbox": "NODE_NO_WARNINGS=1 node --loader ts-node/esm src/deploy/index.ts --network=sandbox",
+    "deploy:testnet": "NODE_NO_WARNINGS=1 node --loader ts-node/esm src/deploy/index.ts --network=testnet"
   },
   "dependencies": {
     "@aztec/accounts": "=0.85.0-alpha-testnet.2",

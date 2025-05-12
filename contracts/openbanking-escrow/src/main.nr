@@ -19,7 +19,10 @@ contract OpenbankingEscrow {
         utils::hash_pubkey,
     };
     use aztec::{
-        macros::{functions::{initializer, internal, private, public, utility}, storage::storage},
+        macros::{
+            functions::{initializer, internal, private, public, utility, view},
+            storage::storage,
+        },
         messages::logs::note::encode_and_encrypt_note,
         note::note_getter::MAX_NOTES_PER_PAGE,
         prelude::{AztecAddress, Map, PrivateMutable, PublicImmutable, PublicMutable},
@@ -390,14 +393,11 @@ contract OpenbankingEscrow {
      * @param commitment - commitment mapped to an escrow balance
      * @return - escrow balance if commitment matches, none if no balance matches commitment
      */
-    #[utility]
-    unconstrained fn get_escrow_liqudity_position(commitment: Field) -> pub Option<EscrowBalance> {
+    #[public]
+    #[view]
+    fn get_escrow_liqudity_position(commitment: Field) -> pub EscrowBalance {
         let balance = storage.escrow_balances.at(commitment).read();
-        let mut value = Option::none();
-        if balance.initialized {
-            value = Option::some(balance);
-        }
-        value
+        balance
     }
 
     /**

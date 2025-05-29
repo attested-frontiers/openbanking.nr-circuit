@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 ARTIFACTS_PATH=$SCRIPT_DIR/../js/src/artifacts
 COMPILED_CONTRACT_NAME=openbanking_escrow-OpenbankingEscrow.json
 COMPILED_TOKEN_NAME=token-Token.json
-TOKEN_CONTRACT_PATH=$HOME/nargo/github.com/nemi-fi/aztec-token/main
+TOKEN_CONTRACT_PATH=$HOME/nargo/github.com/defi-wonderland/aztec-standards/chore/v0.87.2/src/token_contract
 TOKEN_BYTECODE_PATH=$TOKEN_CONTRACT_PATH/target/token-Token.json
 TXE_TOKEN_PATH=$SCRIPT_DIR/../contracts/openbanking-escrow/target/token-Token.json
 CONTRACT_ACIR_PATH=$SCRIPT_DIR/../contracts/openbanking-escrow/target/$COMPILED_CONTRACT_NAME
@@ -21,7 +21,7 @@ NOIRUP_URL="https://raw.githubusercontent.com/noir-lang/noirup/main/install"
 BBUP_URL="https://raw.githubusercontent.com/AztecProtocol/aztec-packages/refs/heads/master/barretenberg/bbup/install"
 EXPECTED_NARGO_VERSION="1.0.0-beta.3"
 EXPECTED_BB_VERSION="0..0"
-EXPECTED_AZTEC_VERSION="0.85.0-alpha-testnet.2"
+EXPECTED_AZTEC_VERSION="0.87.2"
 
 ## Set the SED utility depending on OSX or Linix
 if command -v gsed &> /dev/null

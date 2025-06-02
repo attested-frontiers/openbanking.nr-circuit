@@ -11,16 +11,11 @@ use token::Token;
  */
 #[contract_library_method]
 pub fn withdraw_tokens(
-    context: &mut PrivateContext,
     token: AztecAddress,
+    escrow: AztecAddress,
     recipient: AztecAddress,
     amount: u128
 ) {
     let token_contract = Token::at(token);
-    let hiding_point_slot = token_contract
-        .prepare_private_balance_increase(recipient, recipient)
-        .call(context);
-    token_contract
-        .finalize_transfer_to_private(amount, hiding_point_slot)
-        .enqueue(context);
+    token_contract.transfer_public_to_private(escrow, recipient, amount, 0);
 }

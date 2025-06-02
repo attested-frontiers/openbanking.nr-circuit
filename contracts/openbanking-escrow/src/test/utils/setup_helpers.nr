@@ -52,9 +52,9 @@ pub unconstrained fn deploy_token_contract(
     env.impersonate(deployer);
 
     let token_init_call_iface =
-        Token::interface().constructor(deployer, USDC_NAME, USDC_SYMBOL, USDC_DECIMALS);
+        Token::interface().constructor_with_minter(USDC_NAME, USDC_SYMBOL, USDC_DECIMALS, deployer, AztecAddress::zero());
     let token_contract =
-        env.deploy("./@token", "Token").with_public_void_initializer(token_init_call_iface);
+        env.deploy("./@token", "Token").with_public_void_initializer(deployer, token_init_call_iface);
 
     cheatcodes::advance_blocks_by(1);
 
@@ -72,7 +72,7 @@ pub unconstrained fn deploy_escrow_contract(
         OpenbankingEscrow::interface().constructor(token_address, pubkey_hashes);
     let escrow_contract = env
         .deploy("./@openbanking_escrow", "OpenbankingEscrow")
-        .with_public_void_initializer(escrow_init_call_iface);
+        .with_public_void_initializer(deployer, escrow_init_call_iface);
     cheatcodes::advance_blocks_by(1);
     escrow_contract.to_address()
 }

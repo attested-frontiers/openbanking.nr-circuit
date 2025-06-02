@@ -16,7 +16,7 @@ use dep::aztec::{
 use dep::openbanking_verifier::constants::{CURRENCY_CODE_VALUE_LENGTH, SORT_CODE_VALUE_LENGTH};
 use dep::std::hash::poseidon2::Poseidon2;
 
-// #[test]
+#[test]
 unconstrained fn test_admin_key_additon_revocation() {
     let (env, accounts, contracts) = setup();
 

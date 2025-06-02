@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 ARTIFACTS_PATH=$SCRIPT_DIR/../js/src/artifacts
 COMPILED_CONTRACT_NAME=openbanking_escrow-OpenbankingEscrow.json
 COMPILED_TOKEN_NAME=token-Token.json
-TOKEN_CONTRACT_PATH=$HOME/nargo/github.com/defi-wonderland/aztec-standards/chore/v0.87.2/src/token_contract
+TOKEN_CONTRACT_PATH=$HOME/nargo/github.com/defi-wonderland/aztec-standards/dev/src/token_contract
 TOKEN_BYTECODE_PATH=$TOKEN_CONTRACT_PATH/target/token-Token.json
 TXE_TOKEN_PATH=$SCRIPT_DIR/../contracts/openbanking-escrow/target/token-Token.json
 CONTRACT_ACIR_PATH=$SCRIPT_DIR/../contracts/openbanking-escrow/target/$COMPILED_CONTRACT_NAME
@@ -138,7 +138,7 @@ compile_contracts() {
 
 
     # cd into token directory and compile
-    cd $HOME/nargo/github.com/nemi-fi/aztec-token/main
+    cd $TOKEN_CONTRACT_PATH
     aztec-nargo compile --force --silence-warnings
     echo -e "${GREEN}✓${NC} Aztec Token $version is compiled"
 

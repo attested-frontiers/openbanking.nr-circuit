@@ -102,7 +102,7 @@ contract OpenbankingEscrow {
         );
         // transfer private token balance to public balance of escrow
         Token::at(storage.config.read().token)
-            .transfer_to_public(escrow_owner, escrow_contract, amount, 0)
+            .transfer_private_to_public(escrow_owner, escrow_contract, amount, 0)
             .call(&mut context);
 
         OpenbankingEscrow::at(escrow_contract)
@@ -143,9 +143,9 @@ contract OpenbankingEscrow {
 
         // transfer private token balance to public balance of escrow
         let token_contract = storage.config.read().token;
-        Token::at(token_contract).transfer_to_public(escrow_owner, escrow_contract, amount, 0).call(
-            &mut context,
-        );
+        Token::at(token_contract)
+            .transfer_private_to_public(escrow_owner, escrow_contract, amount, 0)
+            .call(&mut context);
     }
 
     /**
@@ -185,8 +185,8 @@ contract OpenbankingEscrow {
 
         // transfer tokens to claimant's private balance
         withdraw_tokens(
-            &mut context,
             storage.config.read().token,
+            context.this_address(),
             context.msg_sender(),
             amount,
         );
@@ -250,8 +250,8 @@ contract OpenbankingEscrow {
 
         // transfer tokens to escrow owner's private balance
         withdraw_tokens(
-            &mut context,
             storage.config.read().token,
+            context.this_address(),
             context.msg_sender(),
             amount,
         );

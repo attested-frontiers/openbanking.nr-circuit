@@ -54,7 +54,7 @@ pub unconstrained fn deploy_token_contract(
     let token_init_call_iface =
         Token::interface().constructor_with_minter(USDC_NAME, USDC_SYMBOL, USDC_DECIMALS, deployer, AztecAddress::zero());
     let token_contract =
-        env.deploy("./@token", "Token").with_public_void_initializer(deployer, token_init_call_iface);
+        env.deploy("./@token_contract", "Token").with_public_void_initializer(deployer, token_init_call_iface);
 
     cheatcodes::advance_blocks_by(1);
 

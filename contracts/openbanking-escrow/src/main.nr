@@ -185,6 +185,7 @@ contract OpenbankingEscrow {
 
         // transfer tokens to claimant's private balance
         withdraw_tokens(
+            &mut context,
             storage.config.read().token,
             context.this_address(),
             context.msg_sender(),
@@ -250,6 +251,7 @@ contract OpenbankingEscrow {
 
         // transfer tokens to escrow owner's private balance
         withdraw_tokens(
+            &mut context,
             storage.config.read().token,
             context.this_address(),
             context.msg_sender(),

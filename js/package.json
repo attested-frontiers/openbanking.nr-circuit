@@ -15,9 +15,9 @@
     "deploy:testnet": "node --loader ts-node/esm src/deploy/index.ts --network=testnet"
   },
   "dependencies": {
-    "@aztec/accounts": "=0.85.0-alpha-testnet.2",
-    "@aztec/noir-contracts.js": "=0.85.0-alpha-testnet.2",
-    "@aztec/pxe": "=0.85.0-alpha-testnet.2",
+    "@aztec/accounts": "=0.87.2",
+    "@aztec/noir-contracts.js": "=0.87.2",
+    "@aztec/pxe": "=0.87.2",
     "@mach-34/noir-bignum-paramgen": "^1.1.2",
     "@noir-lang/noir_js": "=1.0.0-beta.1",
     "@noir-lang/noirc_abi": "=1.0.0-beta.1",

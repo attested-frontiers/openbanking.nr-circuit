@@ -1,0 +1,8 @@
+[package]
+name = "token_minter"
+type = "contract"
+authors = ["Mach 34"]
+
+[dependencies]
+aztec = { git="https://github.com/AztecProtocol/aztec-packages/", tag="v0.87.2", directory="noir-projects/aztec-nr/aztec" }
+token = { git="https://github.com/defi-wonderland/aztec-standards", tag="dev", directory="src/token_contract" }

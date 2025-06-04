@@ -10,12 +10,13 @@ echo -e "=====[${ORANGE}OpenBanking.nr Compilation Script${NC}]====="
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 ARTIFACTS_PATH=$SCRIPT_DIR/../js/src/artifacts
-COMPILED_CONTRACT_NAME=openbanking_escrow-OpenbankingEscrow.json
-COMPILED_TOKEN_NAME=token-Token.json
+COMPILED_ESCROW_NAME=openbanking_escrow-OpenbankingEscrow.json
+COMPILED_TOKEN_NAME=token_contract-Token.json
+COMPILED_TOKEN_MINTER_NAME=token_minter-TokenMinter.json
 TOKEN_CONTRACT_PATH=$HOME/nargo/github.com/defi-wonderland/aztec-standards/dev/src/token_contract
-TOKEN_BYTECODE_PATH=$TOKEN_CONTRACT_PATH/target/token-Token.json
-TXE_TOKEN_PATH=$SCRIPT_DIR/../contracts/openbanking-escrow/target/token-Token.json
-CONTRACT_ACIR_PATH=$SCRIPT_DIR/../contracts/openbanking-escrow/target/$COMPILED_CONTRACT_NAME
+TOKEN_BYTECODE_PATH=$HOME/nargo/github.com/defi-wonderland/aztec-standards/dev/target/token_contract-Token.json
+TXE_TOKEN_PATH=$SCRIPT_DIR/../contracts/openbanking-escrow/target/token_contract-Token.json
+CONTRACT_ACIR_PATH=$SCRIPT_DIR/../contracts/openbanking-escrow/target/$COMPILED_ESCROW_NAME
 
 NOIRUP_URL="https://raw.githubusercontent.com/noir-lang/noirup/main/install"
 BBUP_URL="https://raw.githubusercontent.com/AztecProtocol/aztec-packages/refs/heads/master/barretenberg/bbup/install"
@@ -136,6 +137,10 @@ compile_contracts() {
     cd $SCRIPT_DIR/../contracts/openbanking-escrow
     aztec-nargo compile --force --silence-warnings
 
+    # Compile token minter contract
+    echo "Compiling Token Minter contract..."
+    cd $SCRIPT_DIR/../contracts/token-minter
+    aztec-nargo compile --force --silence-warnings
 
     # cd into token directory and compile
     cd $TOKEN_CONTRACT_PATH
@@ -152,12 +157,20 @@ ts_artifacts() {
     # Generate TS artifacts
     echo "Generating TypeScript interface for OpenBanking Escrow and Token Contracts..."
     cd $SCRIPT_DIR/../contracts/openbanking-escrow
-    aztec codegen ./target/$COMPILED_CONTRACT_NAME -o $ARTIFACTS_PATH/contracts
+    aztec codegen ./target/$COMPILED_ESCROW_NAME -o $ARTIFACTS_PATH/contracts
     aztec codegen ./target/$COMPILED_TOKEN_NAME -o $ARTIFACTS_PATH/contracts
+    cd ../token-minter # navigate token minter directory
+    aztec codegen ./target/$COMPILED_TOKEN_MINTER_NAME -o $ARTIFACTS_PATH/contracts
 
     # Update import paths for JS library
-    cp ./target/$COMPILED_CONTRACT_NAME $ARTIFACTS_PATH/contracts/openbanking_escrow.json
-    $sed_cmd -i "s|../../../../contracts/openbanking-escrow/target/$COMPILED_CONTRACT_NAME|./openbanking_escrow.json|" $ARTIFACTS_PATH/contracts/OpenbankingEscrow.ts
+    cp ./target/$COMPILED_TOKEN_MINTER_NAME $ARTIFACTS_PATH/contracts/token_minter.json
+    $sed_cmd -i "s|../../../../contracts/token-minter/target/$COMPILED_TOKEN_MINTER_NAME|./token_minter.json|" $ARTIFACTS_PATH/contracts/TokenMinter.ts
+    $sed_cmd -i "s|assert { type: 'json' }|with { type: 'json' }|" $ARTIFACTS_PATH/contracts/TokenMinter.ts
+    $sed_cmd -i "/export const TokenMinterContractArtifact = loadContractArtifact(TokenMinterArtifactContractArtifactJson as NoirCompiledContract);/i \\/\/@ts-ignore" $ARTIFACTS_PATH/contracts/TokenMinter.ts
+
+    cd ../openbanking-escrow # navigate back into escrow
+    cp ./target/$COMPILED_ESCROW_NAME $ARTIFACTS_PATH/contracts/openbanking_escrow.json
+    $sed_cmd -i "s|../../../../contracts/openbanking-escrow/target/$COMPILED_ESCROW_NAME|./openbanking_escrow.json|" $ARTIFACTS_PATH/contracts/OpenbankingEscrow.ts
     $sed_cmd -i "s|assert { type: 'json' }|with { type: 'json' }|" $ARTIFACTS_PATH/contracts/OpenbankingEscrow.ts
     $sed_cmd -i "/export const OpenBankingEscrowContractArtifact = loadContractArtifact(OpenBankingArtifactContractArtifactJson as NoirCompiledContract);/i \\/\/@ts-ignore" $ARTIFACTS_PATH/contracts/OpenbankingEscrow.ts
 
@@ -166,10 +179,12 @@ ts_artifacts() {
     $sed_cmd -i "s|assert { type: 'json' }|with { type: 'json' }|" $ARTIFACTS_PATH/contracts/Token.ts
     $sed_cmd -i "/export const TokenContractArtifact = loadContractArtifact(TokenArtifactContractArtifactJson as NoirCompiledContract);/i \\/\/@ts-ignore" $ARTIFACTS_PATH/contracts/Token.ts
 
+
+
     # Build the library from ts to js
     cd $SCRIPT_DIR/../js
     echo "Building JS library..."
-    rm -rf $SCRIPTS_DIR/../js/.tsbuildinfo
+    rm $SCRIPT_DIR/../js/.tsbuildinfo
     rm -rf $SCRIPT_DIR/../js/dist
     $node_package_installer run build
 }

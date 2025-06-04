@@ -7,6 +7,7 @@ import {
 import { TokenContract } from '../artifacts/contracts/Token.js';
 import { OpenbankingEscrowContract } from '../artifacts/contracts/OpenbankingEscrow.js';
 import { USDC_TOKEN } from "../constants.js";
+import { TokenMinterContract } from "../artifacts/contracts/TokenMinter.js";
 
 // tx timeout in seconds
 export const AZTEC_TIMEOUT = 600;
@@ -37,14 +38,21 @@ export const deployEscrowContract = async (adminWallet: AccountWalletWithSecretK
         .deployed({ timeout: AZTEC_TIMEOUT });
 }
 
-export const deployTokenContract = async (adminWallet: AccountWalletWithSecretKey, paymentMethod: SponsoredFeePaymentMethod): Promise<TokenContract> => {
-    return await TokenContract.deploy(
-        adminWallet,
-        adminWallet.getAddress(),
-        USDC_TOKEN.symbol,
+export const deployTokenContract = async (adminWallet: AccountWalletWithSecretKey, minter: AztecAddress, paymentMethod: SponsoredFeePaymentMethod): Promise<TokenContract> => {
+    return await TokenContract.deployWithOpts(
+        { method: 'constructor_with_minter', wallet: adminWallet },
         USDC_TOKEN.name,
+        USDC_TOKEN.symbol,
         USDC_TOKEN.decimals,
+        minter,
+        AztecAddress.ZERO
     )
+        .send({ fee: { paymentMethod } })
+        .deployed({ timeout: AZTEC_TIMEOUT });
+}
+
+export const deployTokenMinterContract = async (adminWallet: AccountWalletWithSecretKey, paymentMethod: SponsoredFeePaymentMethod): Promise<TokenMinterContract> => {
+    return await TokenMinterContract.deploy(adminWallet)
         .send({ fee: { paymentMethod } })
         .deployed({ timeout: AZTEC_TIMEOUT });
 }

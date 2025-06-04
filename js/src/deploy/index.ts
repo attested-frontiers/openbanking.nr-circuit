@@ -7,10 +7,9 @@ import {
     waitForPXE,
 } from '@aztec/aztec.js';
 import { getSchnorrAccount } from '@aztec/accounts/schnorr';
-import { deployEscrowContract, deployTokenContract, AZTEC_TIMEOUT } from './helpers.js'
+import { deployEscrowContract, deployTokenContract, AZTEC_TIMEOUT, deployTokenMinterContract } from './helpers.js'
 import { SponsoredFPCContract } from "@aztec/noir-contracts.js/SponsoredFPC";
 import { getSponsoredFPCInstance } from "../utils.js";
-import { TokenContract } from "../artifacts/index.js";
 
 // Set as minters 
 const NETWORK_ARGS = ["testnet", "sandbox"];
@@ -57,17 +56,21 @@ const deploy = async () => {
 
     const aztecNetworkArg = parseAztecNetworkArg(process.argv);
 
+    let tokenMinterContract = await deployTokenMinterContract(adminWallet, paymentMethod);
     let token: AztecAddress;
     if (aztecNetworkArg === "testnet") {
         token = AztecAddress.fromString("0x04e1b62d4c68730f345c41d92852ead8237f0ba198a7e6973ab03806aa43ce75");
     } else {
-        const tokenContract = await deployTokenContract(adminWallet, paymentMethod)
+        const tokenContract = await deployTokenContract(adminWallet, tokenMinterContract.address, paymentMethod)
         token = tokenContract.address;
     }
     const escrow = await deployEscrowContract(adminWallet, paymentMethod, token);
+    // assign token to minter contract
+    await tokenMinterContract.methods.set_token(token).send({ fee: { paymentMethod } }).wait();
 
     console.log(`VITE_APP_ESCROW_CONTRACT_ADDRESS = "${escrow.address.toString()}"`);
     console.log(`VITE_APP_TOKEN_CONTRACT_ADDRESS = "${token.toString()}"`);
+    console.log(`VITE_APP_TOKEN_MINTER_CONTRACT_ADDRESS = "${tokenMinterContract.address.toString()}"`)
     process.exit(0);
 };
 

@@ -18,5 +18,6 @@ pub fn withdraw_tokens(
     amount: u128,
 ) {
     let token_contract = Token::at(token);
-    token_contract.transfer_public_to_private(escrow, recipient, amount, 0).call(context);
+    let commitment = token_contract.initialize_transfer_commitment(recipient, recipient).call(context);
+    token_contract.transfer_public_to_commitment(escrow, commitment, amount, 0).enqueue(context);
 }

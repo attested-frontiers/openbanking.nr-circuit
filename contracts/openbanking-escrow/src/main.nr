@@ -338,9 +338,9 @@ contract OpenbankingEscrow {
         amount: u128,
     ) {
         // check that hash of pubkey is registered
-        let hash = hash_pubkey(modulus_limbs, redc_limbs);
-        let stored = storage.pubkey_registry.at(hash).read();
-        assert(stored == true, "Pubkey not stored in registry");
+        // let hash = hash_pubkey(modulus_limbs, redc_limbs);
+        // let stored = storage.pubkey_registry.at(hash).read();
+        // assert(stored == true, "Pubkey not stored in registry");
 
         // check that escrow exists for the commitment
         let mut escrow_balance = storage.escrow_balances.at(commitment).read();

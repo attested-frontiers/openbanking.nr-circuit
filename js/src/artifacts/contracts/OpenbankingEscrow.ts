@@ -184,8 +184,8 @@ EscrowOwnerNote: {
     /** revoke_keys(key_hashes: array) */
     revoke_keys: ((key_hashes: FieldLike[]) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
-    /** sync_notes() */
-    sync_notes: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
+    /** sync_private_state() */
+    sync_private_state: (() => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;
 
     /** withdraw_escrow_balance(amount: integer) */
     withdraw_escrow_balance: ((amount: (bigint | number)) => ContractFunctionInteraction) & Pick<ContractMethod, 'selector'>;

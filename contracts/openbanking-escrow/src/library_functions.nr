@@ -1,4 +1,4 @@
-use aztec::{prelude::AztecAddress, context::PrivateContext};
+use aztec::{context::PrivateContext, prelude::AztecAddress};
 use token::Token;
 
 /**
@@ -13,14 +13,11 @@ use token::Token;
 pub fn withdraw_tokens(
     context: &mut PrivateContext,
     token: AztecAddress,
+    escrow: AztecAddress,
     recipient: AztecAddress,
-    amount: u128
+    amount: u128,
 ) {
     let token_contract = Token::at(token);
-    let hiding_point_slot = token_contract
-        .prepare_private_balance_increase(recipient, recipient)
-        .call(context);
-    token_contract
-        .finalize_transfer_to_private(amount, hiding_point_slot)
-        .enqueue(context);
+    let commitment = token_contract.initialize_transfer_commitment(recipient, recipient).call(context);
+    token_contract.transfer_public_to_commitment(escrow, commitment, amount, 0).enqueue(context);
 }

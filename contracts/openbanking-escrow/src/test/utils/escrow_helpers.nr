@@ -63,8 +63,12 @@ pub unconstrained fn increment_balance(
     amount: u128,
 ) {
     // create token transfer authwit
-    let transfer_to_public_call_interface =
-        Token::at(token_address).transfer_to_public(escrow_owner, escrow_address, amount, 0);
+    let transfer_to_public_call_interface = Token::at(token_address).transfer_private_to_public(
+        escrow_owner,
+        escrow_address,
+        amount,
+        0,
+    );
 
     authwit_cheatcodes::add_private_authwit_from_call_interface(
         escrow_owner,
@@ -88,8 +92,12 @@ pub unconstrained fn initial_deposit(
     amount: u128,
 ) {
     // create token transfer authwit
-    let transfer_to_public_call_interface =
-        Token::at(token_address).transfer_to_public(escrow_owner, escrow_address, amount, 0);
+    let transfer_to_public_call_interface = Token::at(token_address).transfer_private_to_public(
+        escrow_owner,
+        escrow_address,
+        amount,
+        0,
+    );
 
     authwit_cheatcodes::add_private_authwit_from_call_interface(
         escrow_owner,

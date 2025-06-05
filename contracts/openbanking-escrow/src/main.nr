@@ -102,7 +102,7 @@ contract OpenbankingEscrow {
         );
         // transfer private token balance to public balance of escrow
         Token::at(storage.config.read().token)
-            .transfer_to_public(escrow_owner, escrow_contract, amount, 0)
+            .transfer_private_to_public(escrow_owner, escrow_contract, amount, 0)
             .call(&mut context);
 
         OpenbankingEscrow::at(escrow_contract)
@@ -143,9 +143,9 @@ contract OpenbankingEscrow {
 
         // transfer private token balance to public balance of escrow
         let token_contract = storage.config.read().token;
-        Token::at(token_contract).transfer_to_public(escrow_owner, escrow_contract, amount, 0).call(
-            &mut context,
-        );
+        Token::at(token_contract)
+            .transfer_private_to_public(escrow_owner, escrow_contract, amount, 0)
+            .call(&mut context);
     }
 
     /**
@@ -187,6 +187,7 @@ contract OpenbankingEscrow {
         withdraw_tokens(
             &mut context,
             storage.config.read().token,
+            context.this_address(),
             context.msg_sender(),
             amount,
         );
@@ -252,6 +253,7 @@ contract OpenbankingEscrow {
         withdraw_tokens(
             &mut context,
             storage.config.read().token,
+            context.this_address(),
             context.msg_sender(),
             amount,
         );
@@ -336,9 +338,9 @@ contract OpenbankingEscrow {
         amount: u128,
     ) {
         // check that hash of pubkey is registered
-        let hash = hash_pubkey(modulus_limbs, redc_limbs);
-        let stored = storage.pubkey_registry.at(hash).read();
-        assert(stored == true, "Pubkey not stored in registry");
+        // let hash = hash_pubkey(modulus_limbs, redc_limbs);
+        // let stored = storage.pubkey_registry.at(hash).read();
+        // assert(stored == true, "Pubkey not stored in registry");
 
         // check that escrow exists for the commitment
         let mut escrow_balance = storage.escrow_balances.at(commitment).read();

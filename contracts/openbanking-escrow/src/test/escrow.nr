@@ -16,7 +16,7 @@ use dep::aztec::{
 use dep::openbanking_verifier::constants::{CURRENCY_CODE_VALUE_LENGTH, SORT_CODE_VALUE_LENGTH};
 use dep::std::hash::poseidon2::Poseidon2;
 
-// #[test]
+#[test]
 unconstrained fn test_admin_key_additon_revocation() {
     let (env, accounts, contracts) = setup();
 
@@ -80,7 +80,7 @@ unconstrained fn test_claim_with_invalid_pubkey() {
     prove_payment(env, accounts.bob, contracts.escrow, REVOLUT_PAYMENT_PAYLOAD);
 }
 
-// #[test]
+#[test]
 unconstrained fn test_claim_revolut() {
     let (env, accounts, contracts) = setup();
     let mint_amount = to_usdc_decimals(50);
@@ -126,7 +126,7 @@ unconstrained fn test_claim_revolut() {
     // prove revolute payment as Bob and claim from escrow
     prove_payment(env, accounts.bob, contracts.escrow, REVOLUT_PAYMENT_PAYLOAD);
 
-    // check that balances have been properly updated
+    // // check that balances have been properly updated
     let new_balance = mint_amount - to_usdc_decimals(1);
     check_commitment_balance(contracts.escrow, commitment, new_balance);
     check_public_balance(contracts.usdc, contracts.escrow, new_balance);

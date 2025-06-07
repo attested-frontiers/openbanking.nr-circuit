@@ -10,7 +10,7 @@ import { USDC_TOKEN } from "../constants.js";
 import { TokenMinterContract } from "../artifacts/contracts/TokenMinter.js";
 
 // tx timeout in seconds
-export const AZTEC_TIMEOUT = 600;
+export const AZTEC_TIMEOUT = 3600;
 
 export const deployEscrowContract = async (adminWallet: AccountWalletWithSecretKey, paymentMethod: SponsoredFeePaymentMethod, token: AztecAddress): Promise<OpenbankingEscrowContract> => {
     return await OpenbankingEscrowContract.deploy(
